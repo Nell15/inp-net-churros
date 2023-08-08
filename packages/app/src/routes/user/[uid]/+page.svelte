@@ -1,160 +1,352 @@
 <script lang="ts">
   import { PUBLIC_STORAGE_URL } from '$env/static/public';
-  import GroupMemberBadge from '$lib/components/badges/GroupMemberBadge.svelte';
-  import SchoolBadge from '$lib/components/badges/SchoolBadge.svelte';
-  import Card from '$lib/components/cards/Card.svelte';
-  import SocialLink from '$lib/components/links/SocialLink.svelte';
-  import FlexList from '$lib/components/lists/FlexList.svelte';
-  import UserPicture from '$lib/components/pictures/UserPicture.svelte';
-  import { formatDate } from '$lib/dates.js';
+  import IconGear from '~icons/mdi/gear-outline';
+  import IconAdmin from '~icons/mdi/security';
+  import IconWebsite from '~icons/mdi/earth';
+  import { dateFormatter, yearTier } from '$lib/dates.js';
   import { me } from '$lib/session.js';
-  import MajesticonsAcademicCap from '~icons/majesticons/academic-cap-line';
-  import MajesticonsCake from '~icons/majesticons/cake-line';
-  import MajesticonsEdit from '~icons/majesticons/edit-pen-2-line';
-  import MajesticonsLocationMarker from '~icons/majesticons/location-marker-line';
-  import MajesticonsPhone from '~icons/majesticons/phone-line';
   import type { PageData } from './$types';
-  import { byMemberGroupTitleImportance } from '$lib/sorting';
+  import IconFacebook from '~icons/mdi/facebook-box';
+  import type { SvelteComponent } from 'svelte';
+  import IconInstagram from '~icons/mdi/instagram';
+  import IconTwitter from '~icons/mdi/twitter';
+  import IconMatrix from '~icons/mdi/matrix';
+  import IconLinkedin from '~icons/mdi/linkedin';
+  import IconDiscord from '~icons/mdi/discord';
+  import IconSnapchat from '~icons/mdi/snapchat';
+  import TreePersons from '$lib/components/TreePersons.svelte';
+  import Badge from '$lib/components/Badge.svelte';
+  import CarouselGroups from '$lib/components/CarouselGroups.svelte';
+  import CardArticle from '$lib/components/CardArticle.svelte';
+  import ButtonGhost from '$lib/components/ButtonGhost.svelte';
+  import ButtonShare from '$lib/components/ButtonShare.svelte';
+
+  const NAME_TO_ICON: Record<string, typeof SvelteComponent> = {
+    facebook: IconFacebook,
+    instagram: IconInstagram,
+    twitter: IconTwitter,
+    matrix: IconMatrix,
+    linkedin: IconLinkedin,
+    discord: IconDiscord,
+    snapchat: IconSnapchat,
+  };
 
   export let data: PageData;
 
+  type Nesting = [string, Nesting[]];
+  $: familyNesting = JSON.parse(data.user.familyTree.nesting) as Nesting;
+  type UserTree = typeof data.user.familyTree.users[number] & { children: UserTree[] };
+  function makeFamilyTree(nesting: Nesting): UserTree {
+    const findUser = (uid: string) => data.user.familyTree.users.find((u) => u.uid === uid);
+
+    const [rootUid, children] = nesting;
+    return {
+      ...findUser(rootUid)!,
+      children: children.map((child) =>
+        typeof child === 'string' ? { ...findUser(child)!, children: [] } : makeFamilyTree(child)
+      ),
+    };
+  }
+
+  $: familyTree = makeFamilyTree(familyNesting);
+
   $: ({ user } = data);
+
+  function rolesBadge({
+    president,
+    treasurer,
+    vicePresident,
+    secretary,
+  }: {
+    president: boolean;
+    treasurer: boolean;
+    vicePresident: boolean;
+    secretary: boolean;
+  }): string {
+    return president ? '👑' : treasurer ? '💰' : vicePresident ? '🌟' : secretary ? '📜' : '';
+  }
+
+  $: roleBadge = user.groups.some(({ president }) => president)
+    ? '👑'
+    : user.groups.some(({ treasurer }) => treasurer)
+    ? '💰'
+    : user.groups.some(({ vicePresident }) => vicePresident)
+    ? '🌟'
+    : user.groups.some(({ secretary }) => secretary)
+    ? '📜'
+    : '';
 
   const formatPhoneNumber = (phone: string) =>
     phone.replace(/^\+33(\d)(\d\d)(\d\d)(\d\d)(\d\d)$/, '0$1 $2 $3 $4 $5');
+
+  $: pictureFile = user.pictureFile ? `${PUBLIC_STORAGE_URL}${user.pictureFile}` : '';
 </script>
 
-<div class="placeholder" />
-
-<Card>
-  <div class="user-header">
-    <div class="user-picture">
-      <UserPicture
-        src={user.pictureFile
-          ? `${PUBLIC_STORAGE_URL}${user.pictureFile}`
-          : 'https://via.placeholder.com/160'}
-        alt="{user.firstName} {user.lastName}"
-      />
-    </div>
-    <div class="user-title">
-      <h1 class="my-0">
-        {user.firstName}
-        {user.nickname}
-        {user.lastName}
-        {#if user.uid === $me?.uid || $me?.canEditUsers}
-          <a href="edit/" title="Éditer">
-            <MajesticonsEdit aria-label="Éditer" />
-          </a>
-        {/if}
-      </h1>
-      <div class="description">
-        {#if user.description}
-          {user.description}
-        {:else}
-          {['👻', '🌵', '🕸️', '💤'][user.createdAt.getTime() % 4]}
-        {/if}
-      </div>
-      {#if user.linkCollection.links.length > 0}
-        <div class="flex flex-wrap mt-2 gap-3">
-          {#each user.linkCollection.links as link}
-            <SocialLink {...link} />
-          {/each}
+<div class="content">
+  <header>
+    <div class="picture">
+      {#if roleBadge}
+        <div class="role-badge">
+          {roleBadge}
         </div>
       {/if}
+
+      <img src={pictureFile} alt={user.fullName} />
     </div>
-  </div>
 
-  <FlexList>
-    <li>
-      <MajesticonsAcademicCap aria-label="Filière" />
-      {user.major.name}
-      {user.graduationYear}
-      <SchoolBadge schools={user.major.schools} />
-    </li>
-    {#if user.birthday}
-      <li>
-        <MajesticonsCake aria-label="Anniversaire" />
-        {formatDate(user.birthday)}
-      </li>
-    {/if}
-    {#if user.address}
-      <li>
-        <a
-          href="https://www.google.com/maps/search/?api=1&{new URLSearchParams({
-            query: user.address,
-          })}"
-          target="maps"
-        >
-          <MajesticonsLocationMarker aria-label="Adresse" />
-          {user.address}
-        </a>
-      </li>
-    {/if}
-    {#if user.phone}
-      <li>
-        <a href="tel:{user.phone}">
-          <MajesticonsPhone aria-label="Téléphone" />
-          {formatPhoneNumber(user.phone)}
-        </a>
-      </li>
-    {/if}
-  </FlexList>
+    <div class="identity">
+      <h1>
+        {user.firstName}
+        {user.lastName}
+        {#if user.admin}<Badge title="Possède tout les droits" theme="info"
+            ><IconAdmin /> ADMIN</Badge
+          >
+        {/if}
 
-  <h2 class="mb-1">Groupes</h2>
-  <FlexList horizontal>
-    {#each user.groups.sort(byMemberGroupTitleImportance) as groupMember (groupMember.group.uid)}
-      <li>
-        <a href="/club/{groupMember.group.uid}/" class="no-underline">
-          <GroupMemberBadge {groupMember} />
-        </a>
-      </li>
-    {/each}
-  </FlexList>
-</Card>
+        <ButtonShare />
+        {#if $me?.uid === user.uid || $me?.admin || $me?.canEditUsers}
+          <ButtonGhost href="./edit"><IconGear /></ButtonGhost>
+        {/if}
+      </h1>
+      <p class="major">
+        {yearTier(user.graduationYear)}A ({user.graduationYear}) ·
+        <abbr title={user.major.name}>{user.major.shortName}</abbr>
+        · {user.major.schools.map(({ name }) => name).join(', ')}
+      </p>
+      <ul class="social-links nobullet">
+        {#each user.links as { name, value }}
+          <li>
+            <a href={value} title={name}>
+              <svelte:component this={NAME_TO_ICON?.[name.toLowerCase()] ?? IconWebsite} />
+            </a>
+          </li>
+        {/each}
+      </ul>
+      <p class="bio">{user.description}</p>
+      <div class="info">
+        <dl>
+          {#if user.nickname}
+            <dt>Surnom</dt>
+            <dd>{user.nickname}</dd>
+          {/if}
+          <dt>Email</dt>
+          <dd>
+            <a href="mailto:{user.email}">{user.email}</a>
+          </dd>
+          {#if user.phone}
+            <dt>Téléphone</dt>
+            <dd>
+              <a href="tel:{user.phone}">{formatPhoneNumber(user.phone)}</a>
+            </dd>
+          {/if}
+          {#if user.birthday}
+            <dt>Anniversaire</dt>
+            <dd>{dateFormatter.format(user.birthday)}</dd>
+            <!-- TODO add to agenda -->
+          {/if}
+          {#if user.address}
+            <dt>Adresse</dt>
+            <dd>{user.address}</dd>
+            <!-- TODO go here with gmaps? -->
+          {/if}
+          <dt>Identifiant</dt>
+          <dd>{user.uid}</dd>
+        </dl>
+      </div>
+    </div>
+  </header>
 
-<style lang="scss">
-  .placeholder {
-    height: 5rem;
+  <section class="groups">
+    <h2>Groupes</h2>
+
+    <CarouselGroups
+      groups={user.groups.map(({ group, title, ...roles }) => ({
+        ...group,
+
+        role: `${rolesBadge(roles)} ${title}`,
+      }))}
+    />
+  </section>
+
+  {#if data.user.familyTree.users.length >= 2}
+    <section class="family">
+      <h2>Famille</h2>
+
+      <div class="tree">
+        <TreePersons user={familyTree} highlightUid={user.uid} />
+      </div>
+    </section>
+  {/if}
+
+  <section class="articles">
+    <h2>Posts</h2>
+
+    <ul class="nobullet">
+      {#each data.user.articles.edges.map(({ node }) => node) as article}
+        <li>
+          <CardArticle href="/club/{article.group.uid}/post/{article.uid}" {...article} />
+        </li>
+      {:else}
+        <li>Aucun article</li>
+      {/each}
+    </ul>
+  </section>
+</div>
+
+<style>
+  section {
+    margin-bottom: 5rem;
   }
 
-  .user-header {
-    margin-top: 5rem;
-    margin-bottom: 1rem;
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
   }
 
-  .user-picture {
+  h1 {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .picture {
+    --size: 7rem;
+
+    position: relative;
+    z-index: -1;
+    flex-shrink: 0;
+    width: var(--size);
+    height: var(--size);
+  }
+
+  .picture img {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--size);
+    height: var(--size);
+    color: var(--muted-text);
+    text-align: center;
+    background: var(--muted-bg);
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .picture .role-badge {
     position: absolute;
-    transform: translateY(-100%);
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(var(--size) / 3);
+    height: calc(var(--size) / 3);
+    font-size: 1.25rem;
+    background: var(--bg);
+    border: var(--border-block) solid var(--border);
+    border-radius: 50%;
   }
 
-  .user-title {
-    flex: 1;
-    padding-block: 0.5rem;
+  .social-links {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 1.25em;
   }
 
-  .description {
-    color: var(--muted);
+  .identity {
+    display: flex;
+    flex-flow: column wrap;
+    flex-grow: 1;
+    gap: 0.5rem;
   }
 
-  @media (min-width: $breakpoint-mobile) {
-    .placeholder {
-      height: 0;
+  .info {
+    display: flex;
+    flex-flow: column wrap;
+  }
+
+  dl {
+    display: grid;
+    flex-wrap: wrap;
+    grid-template-columns: auto 1fr;
+    column-gap: 0.5rem;
+  }
+
+  @media (max-width: 600px) {
+    dl {
+      grid-template-columns: 1fr;
     }
 
-    .user-header {
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-      margin-top: 1rem;
+    dd {
+      margin-bottom: 1rem;
+    }
+  }
+
+  dt {
+    font-weight: bold;
+  }
+
+  dd {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin-left: 0;
+  }
+
+  section h2 {
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  .content {
+    margin: 0 1rem;
+  }
+
+  .groups {
+    display: flex;
+    flex-flow: column wrap;
+    align-items: center;
+  }
+
+  .family {
+    display: flex;
+    flex-flow: column wrap;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+  }
+
+  .articles {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  @media (min-width: 1000px) {
+    .content {
+      display: grid;
+      grid-template-areas: 'header header' 'groups groups' 'family articles';
+      grid-template-columns: 50% 50%;
+      max-width: 1200px;
+      margin: 0 auto;
     }
 
-    .user-picture {
-      position: static;
-      transform: none;
+    header {
+      grid-area: header;
     }
 
-    .user-title {
-      padding-block: 0;
+    section.groups {
+      grid-area: groups;
+    }
+
+    section.family {
+      grid-area: family;
+    }
+
+    section.articles {
+      grid-area: articles;
     }
   }
 </style>

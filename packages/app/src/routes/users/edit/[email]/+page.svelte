@@ -1,13 +1,19 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import Alert from '$lib/components/alerts/Alert.svelte';
-  import Button from '$lib/components/buttons/Button.svelte';
-  import FormCard from '$lib/components/cards/FormCard.svelte';
-  import FormInput from '$lib/components/inputs/FormInput.svelte';
+  import Alert from '$lib/components/Alert.svelte';
+
   import { fieldErrorsToFormattedError } from '$lib/errors.js';
   import { zeus } from '$lib/zeus.js';
   import type { ZodFormattedError } from 'zod';
   import type { PageData } from './$types';
+  import InputField from '$lib/components/InputField.svelte';
+  import InputText from '$lib/components/InputText.svelte';
+  import InputSearchObject from '$lib/components/InputSearchObject.svelte';
+  import Fuse from 'fuse.js';
+  import InputNumber from '$lib/components/InputNumber.svelte';
+  import InputDate from '$lib/components/InputDate.svelte';
+  import ButtonSecondary from '$lib/components/ButtonSecondary.svelte';
+  import ButtonBack from '$lib/components/ButtonBack.svelte';
 
   export let data: PageData;
 
@@ -23,8 +29,6 @@
 
   // Waiting for https://github.com/graphql-editor/graphql-zeus/issues/262 to be fixed
   graduationYear ??= new Date().getFullYear() + 3;
-
-  const valueAsDate = (x: unknown) => (x as HTMLInputElement).valueAsDate;
 
   $: args = {
     email: data.userCandidateByEmail.email,
@@ -44,14 +48,15 @@
   let formErrors: ZodFormattedError<typeof args> | undefined;
   const onSubmit = async ({ submitter }: SubmitEvent) => {
     if (loading) return;
+    if (!submitter) return;
 
-    const update = !submitter!.dataset.refuse;
+    const update = !submitter.dataset.refuse;
 
     try {
       loading = true;
 
       if (update) {
-        const register = Boolean(submitter!.dataset.register);
+        const register = Boolean(submitter.dataset.register);
         loadingRegister = register;
         loadingSave = !register;
         await updateUserCandidate(register);
@@ -97,73 +102,107 @@
       formErrors = { _errors: [(error as Error).message ?? 'Une erreur est survenue'] };
     }
   };
+
+  const asmajor = (x: unknown) => x as typeof data.schoolGroups[number]['majors'][number];
 </script>
 
-<FormCard large title="Modifier une inscription" on:submit={onSubmit}>
+<h1>
+  <ButtonBack go="../.." /> Demande d'inscription de
+  <strong>{data.userCandidateByEmail.email}</strong>
+</h1>
+
+<form title="Modifier une inscription" on:submit|preventDefault={onSubmit}>
   <Alert theme="danger" closed={(formErrors?._errors ?? []).length === 0} inline>
     <strong>{(formErrors?._errors ?? []).join(' ')}</strong>
   </Alert>
-  <p>Demande envoyée par <strong>{data.userCandidateByEmail.email}</strong>.</p>
-  <p class="grid gap-4 desktop:grid-cols-2">
-    <FormInput label="Prénom :" errors={formErrors?.firstName?._errors}>
-      <input type="text" bind:value={firstName} required />
-    </FormInput>
-    <FormInput label="Nom de famille :" errors={formErrors?.lastName?._errors}>
-      <input type="text" bind:value={lastName} required />
-    </FormInput>
-  </p>
-  <p class="grid gap-4 desktop:grid-cols-2">
-    <FormInput label="Filière :" errors={formErrors?.majorId?._errors}>
-      <select bind:value={majorId} required>
-        {#each data.schoolGroups as { majors, names }}
-          <optgroup label={names.join(', ')}>
-            {#each majors as { id, name }}
-              <option value={id}>{name}</option>
-            {/each}
-          </optgroup>
-        {/each}
-      </select>
-    </FormInput>
-    <FormInput label="Promotion :" errors={formErrors?.graduationYear?._errors}>
-      <input type="number" bind:value={graduationYear} size="4" required />
-    </FormInput>
-  </p>
-  <p class="grid gap-4 grid-cols-2">
-    <FormInput label="Date de naissance :" errors={formErrors?.birthday?._errors}>
-      <input
-        type="date"
-        value={birthday?.toISOString().slice(0, 10)}
-        on:change={({ target }) => {
-          // @ts-expect-error https://github.com/graphql-editor/graphql-zeus/issues/262
-          birthday = valueAsDate(target);
-        }}
-      />
-    </FormInput>
-    <FormInput label="Numéro de téléphone :" errors={formErrors?.phone?._errors}>
-      <input type="tel" bind:value={phone} />
-    </FormInput>
-  </p>
-  <p>
-    <FormInput label="Adresse :" errors={formErrors?.address?._errors}>
-      <input type="text" bind:value={address} />
-    </FormInput>
-  </p>
-  <p class="text-center">
-    <Button type="submit" theme="primary" disabled={loading} loading={loadingSave} data-save>
-      Sauvegarder
-    </Button>
-    <Button
-      type="submit"
-      theme="success"
-      disabled={loading}
-      loading={loadingRegister}
-      data-register
+  <div class="side-by-side">
+    <InputText label="Prénom" errors={formErrors?.firstName?._errors} bind:value={firstName} />
+    <InputText
+      label="Nom de famille"
+      errors={formErrors?.lastName?._errors}
+      bind:value={lastName}
+    />
+  </div>
+  <div class="side-by-side">
+    <InputField label="Filière">
+      <InputSearchObject
+        search={(q) =>
+          new Fuse(
+            data.schoolGroups.flatMap(({ majors }) => majors),
+            {
+              keys: ['name'],
+              threshold: 0.3,
+            }
+          )
+            .search(q)
+            .map(({ item }) => item)}
+        bind:value={majorId}
+        object={data.schoolGroups
+          .flatMap(({ majors }) => majors)
+          .find((major) => major.id === majorId)}
+        labelKey="name"
+      >
+        <svelte:fragment slot="item" let:item>
+          {asmajor(item).name} · {asmajor(item)
+            .schools.map(({ name }) => name)
+            .join(', ')}
+        </svelte:fragment>
+      </InputSearchObject>
+    </InputField>
+    <InputNumber
+      bind:value={graduationYear}
+      label="Promotion"
+      errors={formErrors?.graduationYear?._errors}
+    />
+  </div>
+  <InputDate
+    label="Date de naissance"
+    errors={formErrors?.birthday?._errors}
+    bind:value={birthday}
+  />
+  <InputText
+    label="Numéro de téléphone"
+    type="tel"
+    errors={formErrors?.phone?._errors}
+    bind:value={phone}
+  />
+  <InputText label="Adresse" errors={formErrors?.address?._errors} bind:value={address} />
+
+  <div class="actions">
+    <ButtonSecondary submits data-save loading={loadingSave} disabled={loading}
+      >Sauvegarder</ButtonSecondary
     >
-      Sauvegarder et inscrire
-    </Button>
-    <Button type="submit" theme="danger" disabled={loading} loading={loadingRefuse} data-refuse>
+    <ButtonSecondary submits data-register success loading={loadingSave} disabled={loading}
+      >Sauvegarder et inscrire</ButtonSecondary
+    >
+    <ButtonSecondary submits danger disabled={loading} loading={loadingRefuse} data-refuse>
       Refuser
-    </Button>
-    <a href="../..">Retour à la liste</a>
-  </p>
-</FormCard>
+    </ButtonSecondary>
+  </div>
+</form>
+
+<style>
+  h1 {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  form {
+    display: flex;
+    flex-flow: column wrap;
+    gap: 1rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+  }
+</style>

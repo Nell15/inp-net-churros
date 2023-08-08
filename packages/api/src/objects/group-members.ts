@@ -23,6 +23,7 @@ export const GroupMemberType = builder.prismaObject('GroupMember', {
 builder.mutationField('addGroupMember', (t) =>
   t.prismaField({
     type: GroupMemberType,
+    errors: {},
     args: {
       groupUid: t.arg.string(),
       uid: t.arg.string(),
@@ -53,7 +54,7 @@ builder.mutationField('selfJoinGroup', (t) =>
       groupUid: t.arg.string(),
       uid: t.arg.string(),
     },
-    authScopes: (_, {}, { user }) => Boolean(user),
+    authScopes: { loggedIn: true },
     async resolve(query, _, { groupUid, uid }) {
       const group = await prisma.group.findUnique({ where: { uid: groupUid } });
       if (!group?.selfJoinable) throw new Error('This group is not self-joinable.');
@@ -70,7 +71,7 @@ builder.mutationField('selfJoinGroup', (t) =>
 );
 
 /** Updates a group member. */
-builder.mutationField('updateGroupMember', (t) =>
+builder.mutationField('upsertGroupMember', (t) =>
   t.prismaField({
     type: GroupMemberType,
     args: {
@@ -81,35 +82,52 @@ builder.mutationField('updateGroupMember', (t) =>
       treasurer: t.arg.boolean(),
       vicePresident: t.arg.boolean(),
       secretary: t.arg.boolean(),
+      canEditMembers: t.arg.boolean(),
+      canEditArticles: t.arg.boolean(),
     },
     authScopes: (_, { groupId }, { user }) =>
       Boolean(
         user?.canEditGroups ||
-          user?.groups.some(({ groupId: id, canEditMembers }) => canEditMembers && groupId === id)
+          user?.groups.some(({ group, canEditMembers }) => canEditMembers && group.id === groupId)
       ),
     async resolve(
       query,
       _,
-      { memberId, groupId, title, president, treasurer, secretary, vicePresident }
+      {
+        memberId,
+        groupId,
+        title,
+        president,
+        treasurer,
+        secretary,
+        vicePresident,
+        canEditArticles,
+        canEditMembers,
+      }
     ) {
       if (president) {
         await prisma.groupMember.updateMany({
-          where: { groupId, president: true },
+          where: { group: { id: groupId }, president: true },
           data: { president: false },
         });
       }
 
-      return prisma.groupMember.update({
+      const data = {
+        title,
+        president,
+        treasurer,
+        groupId,
+        memberId,
+        canEditMembers: canEditMembers || president || treasurer,
+        canEditArticles: canEditArticles || president || vicePresident || secretary,
+        vicePresident,
+      };
+
+      return prisma.groupMember.upsert({
         ...query,
         where: { groupId_memberId: { groupId, memberId } },
-        data: {
-          title,
-          president,
-          treasurer,
-          canEditMembers: president || treasurer,
-          secretary,
-          vicePresident,
-        },
+        create: data,
+        update: data,
       });
     },
   })

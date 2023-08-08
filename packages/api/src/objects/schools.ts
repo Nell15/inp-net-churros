@@ -6,8 +6,17 @@ import { MajorType } from './majors.js';
 export const SchoolType = builder.prismaObject('School', {
   fields: (t) => ({
     id: t.exposeID('id'),
+    uid: t.exposeString('uid'),
     name: t.exposeString('name'),
     color: t.exposeString('color'),
+  }),
+});
+
+export const SchoolInput = builder.inputType('SchoolInput', {
+  fields: (t) => ({
+    id: t.id({ required: false }),
+    name: t.string(),
+    color: t.string(),
   }),
 });
 
@@ -41,13 +50,13 @@ builder.queryField('schoolGroups', (t) =>
       });
       const majorGroups = new Map<
         string,
-        { names: string[]; majors: Array<{ id: number; name: string }> }
+        { names: string[]; majors: Array<{ id: string; name: string; shortName: string }> }
       >();
 
-      for (const { id, name, schools } of majors) {
+      for (const { id, name, shortName, schools } of majors) {
         const key = schools
           .map(({ id }) => id)
-          .sort((a, z) => a - z)
+          .sort()
           .join(',');
 
         if (!majorGroups.has(key)) {
@@ -55,7 +64,7 @@ builder.queryField('schoolGroups', (t) =>
           majorGroups.set(key, { names, majors: [] });
         }
 
-        majorGroups.get(key)!.majors.push({ id, name });
+        majorGroups.get(key)!.majors.push({ id, name, shortName });
       }
 
       return [...majorGroups.values()];

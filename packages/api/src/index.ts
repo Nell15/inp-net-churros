@@ -1,6 +1,6 @@
 import { ForbiddenError } from '@pothos/plugin-scope-auth';
 import { CredentialType } from '@prisma/client';
-import { NotFoundError, PrismaClientKnownRequestError } from '@prisma/client/runtime/index.js';
+import { Prisma } from '@prisma/client';
 import { createFetch } from '@whatwg-node/fetch';
 import cors from 'cors';
 import { useNoBatchedQueries } from 'envelop-no-batched-queries';
@@ -54,7 +54,7 @@ const yoga = createYoga({
       const cause = (error as GraphQLError).originalError;
 
       // These are user errors, no need to take special care of them
-      if (cause instanceof NotFoundError)
+      if (cause instanceof Prisma.NotFoundError)
         return new GraphQLError(cause.message, { extensions: { http: { status: 404 } } });
 
       if (cause instanceof ForbiddenError)
@@ -72,7 +72,7 @@ const yoga = createYoga({
       // If the error has no cause, return it as is
       if (cause === undefined) return error as GraphQLError;
 
-      if (cause instanceof PrismaClientKnownRequestError) {
+      if (cause instanceof Prisma.PrismaClientKnownRequestError) {
         return new GraphQLError('Database error.', {
           extensions: { code: 'PRISMA_ERROR', prismaCode: cause.code, http: { status: 500 } },
         });
@@ -88,7 +88,8 @@ const yoga = createYoga({
 const api = express();
 api.use(
   // Allow queries from the frontend only
-  cors({ origin: [process.env.FRONTEND_ORIGIN, 'http://app'] }),
+  // cors({ origin: ['http://192.168.*', process.env.FRONTEND_ORIGIN, 'http://app'] }),
+  cors(),
   // Set basic security headers
   helmet({
     contentSecurityPolicy: false,
@@ -112,7 +113,7 @@ api.use('/dump', async (req, res) => {
       where: { type: CredentialType.Token, value: token },
       include: {
         user: {
-          include: { groups: true, articles: true, linkCollection: { include: { links: true } } },
+          include: { groups: true, articles: true, links: true },
         },
       },
     });
@@ -122,6 +123,10 @@ api.use('/dump', async (req, res) => {
       .status(401)
       .send('<h1>401 Unauthorized</h1><p>Usage: <code>/dump?token=[session token]</code></p>');
   }
+});
+api.get('/log', (req, res) => {
+  console.log(req.query['message'] ?? '<empty>');
+  res.send('ok');
 });
 
 api.get('/', (_req, res) => {
@@ -147,3 +152,97 @@ api.listen(4000, () => {
 });
 
 await writeSchema();
+
+import { lydiaSignature } from './services/lydia.js';
+
+const webhook = express();
+webhook.use(express.urlencoded({ extended: true }));
+
+// Lydia webhook
+webhook.post('/lydia-webhook', async (req, res) => {
+  // Retrieve the params from the request
+  const {
+    request_id,
+    amount,
+    currency,
+    sig,
+    signed,
+    transaction_identifier,
+    vendor_token,
+  }: {
+    request_id: string;
+    amount: string;
+    currency: string;
+    sig: string;
+    signed: string;
+    transaction_identifier: string;
+    vendor_token: string;
+  } = req.body as {
+    request_id: string;
+    amount: string;
+    currency: string;
+    sig: string;
+    signed: string;
+    transaction_identifier: string;
+    vendor_token: string;
+  };
+
+  try {
+    // Get the lydia transaction from it's requestId
+    const transaction = await prisma.lydiaTransaction.findFirst({
+      where: {
+        requestId: request_id,
+      },
+      include: {
+        registration: {
+          include: {
+            ticket: {
+              include: {
+                event: {
+                  include: {
+                    beneficiary: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!transaction) return res.status(400).send('Transaction not found');
+
+    const sigParams = {
+      currency,
+      request_id,
+      amount,
+      signed,
+      transaction_identifier,
+      vendor_token,
+    };
+
+    // Check if the beneficiary exists
+    if (!transaction.registration.ticket.event.beneficiary)
+      return res.status(400).send('Beneficiary not found');
+
+    if (sig === lydiaSignature(transaction.registration.ticket.event.beneficiary, sigParams)) {
+      await prisma.registration.update({
+        where: {
+          id: transaction.registrationId,
+        },
+        data: {
+          paid: true,
+        },
+      });
+      return res.status(200).send('OK');
+    }
+  } catch {
+    return res.status(500).send('Internal server error');
+  }
+
+  return res.status(400).send('Bad request');
+});
+
+webhook.listen(4001, () => {
+  console.log('Webhook ready at http://localhost:4001');
+});

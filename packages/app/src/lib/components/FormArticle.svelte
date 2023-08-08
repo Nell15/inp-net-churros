@@ -1,0 +1,149 @@
+<script lang="ts">
+  import Alert from '$lib/components/Alert.svelte';
+  import { type Visibility, zeus } from '$lib/zeus';
+  import { goto } from '$app/navigation';
+  import EventSearch from './InputEvent.svelte';
+  import { page } from '$app/stores';
+  import { _articleQuery } from '../../routes/club/[group]/post/[post]/edit/+page';
+  import DateInput from '$lib/components/InputDate.svelte';
+  import { DISPLAY_VISIBILITIES, HELP_VISIBILITY } from '$lib/display';
+  import ButtonPrimary from './ButtonPrimary.svelte';
+  import InputText from './InputText.svelte';
+  import InputSelectOne from './InputSelectOne.svelte';
+  import InputLongText from './InputLongText.svelte';
+  import InputLinks from '$lib/components/InputLinks.svelte';
+
+  export let hideEvent = false;
+  export let data: {
+    article: {
+      uid: string;
+      id: string;
+      title: string;
+      body: string;
+      visibility: Visibility;
+      group: {
+        uid: string;
+        name: string;
+        id: string;
+      };
+      author?: {
+        id: string;
+        firstName: string;
+        lastName: string;
+        pictureFile: string;
+        uid: string;
+        groups: Array<{
+          group: {
+            name: string;
+            uid: string;
+          };
+          title: string;
+        }>;
+      };
+      eventId?: string;
+      event?: {
+        id: string;
+        uid: string;
+        title: string;
+        startsAt: Date;
+        visibility: Visibility;
+        pictureFile: string;
+      };
+      links: Array<{ name: string; value: string }>;
+      publishedAt: Date;
+      pictureFile: string;
+    };
+  };
+
+  let serverError = '';
+
+  let { id, event, eventId, title, author, body, publishedAt, visibility, links, group } =
+    data.article;
+
+  $: console.log(publishedAt);
+
+  let loading = false;
+  const updateArticle = async () => {
+    if (loading) return;
+    try {
+      loading = true;
+      const { upsertArticle } = await $zeus.mutate({
+        upsertArticle: [
+          {
+            id,
+            authorId: author?.id ?? '',
+            eventId: eventId ?? '',
+            groupId: group.id,
+            title,
+            body,
+            publishedAt: publishedAt?.toISOString(),
+            links,
+            visibility,
+          },
+          {
+            __typename: true,
+            '...on Error': { message: true },
+            '...on MutationUpsertArticleSuccess': {
+              data: _articleQuery,
+            },
+          },
+        ],
+      });
+
+      if (upsertArticle.__typename === 'Error') {
+        serverError = upsertArticle.message;
+        return;
+      }
+
+      serverError = '';
+      data.article = upsertArticle.data;
+      ({ id, event, eventId, title, author, body, publishedAt, links, group } = data.article);
+      if (data.article.uid)
+        await goto(`/club/${data.article.group.uid}/post/${data.article.uid}/edit`);
+    } finally {
+      loading = false;
+    }
+  };
+
+  $: console.log({ eventId });
+</script>
+
+<form on:submit|preventDefault={updateArticle}>
+  {#if !hideEvent}
+    <EventSearch {event} label="Évènement lié" groupUid={$page.params.group} bind:id={eventId} />
+  {/if}
+  <InputText required label="Titre" bind:value={title} />
+  <DateInput required time label="Publier le" bind:value={publishedAt} />
+  <InputSelectOne
+    required
+    bind:value={visibility}
+    options={DISPLAY_VISIBILITIES}
+    label="Visibilité"
+    hint={HELP_VISIBILITY[visibility]}
+  />
+  <InputLongText label="Description" bind:value={body} rich />
+  <InputLinks label="Liens" bind:value={links} />
+  {#if serverError}
+    <Alert theme="danger"
+      >Impossible de sauvegarder les modifications : <br /><strong>{serverError}</strong></Alert
+    >
+  {/if}
+  <section class="submit">
+    <ButtonPrimary {loading} submits
+      >{#if id === ''}Poster{:else}Enregistrer{/if}</ButtonPrimary
+    >
+  </section>
+</form>
+
+<style>
+  form {
+    display: flex;
+    flex-flow: column wrap;
+    gap: 1rem;
+  }
+
+  .submit {
+    display: flex;
+    justify-content: center;
+  }
+</style>

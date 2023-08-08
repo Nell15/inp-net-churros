@@ -8,13 +8,24 @@ import './objects/credentials.js';
 import './objects/errors.js';
 import './objects/group-members.js';
 import './objects/groups.js';
-import './objects/link-collections.js';
 import './objects/links.js';
 import './objects/majors.js';
 import './objects/scalars.js';
 import './objects/schools.js';
 import './objects/user-candidates.js';
 import './objects/users.js';
+import './objects/events.js';
+import './objects/tickets.js';
+import './objects/ticket-groups.js';
+import './objects/registrations.js';
+import './objects/bank-accounts.js';
+import './objects/event-managers.js';
+import './objects/bar-week.js';
+import './objects/notification-subscriptions.js';
+import './objects/notifications.js';
+import './objects/godparent-requests.js';
+import './objects/password-resets.js';
+import './objects/email-changes.js';
 
 export const schema = builder.toSchema({});
 

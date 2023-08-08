@@ -10,12 +10,16 @@ export const sessionUserQuery = () =>
     id: true,
     uid: true,
     firstName: true,
+    pictureFile: true,
     lastName: true,
+    fullName: true,
     admin: true,
     canEditGroups: true,
     canEditUsers: true,
+    yearTier: true,
     groups: {
-      group: { uid: true },
+      group: { uid: true, id: true, name: true, pictureFile: true, pictureFileDark: true },
+      title: true,
       president: true,
       secretary: true,
       vicePresident: true,
@@ -23,19 +27,33 @@ export const sessionUserQuery = () =>
       canEditArticles: true,
       canEditMembers: true,
     },
-    major: { id: true, name: true, schools: { id: true, name: true } },
+    managedEvents: {
+      event: { uid: true, id: true, group: { uid: true } },
+      canEdit: true,
+      canEditPermissions: true,
+      canVerifyRegistrations: true,
+    },
+    major: {
+      id: true,
+      name: true,
+      shortName: true,
+      schools: { id: true, name: true, uid: true, color: true },
+    },
   });
 
 export type SessionUser = PropsType<typeof sessionUserQuery, 'User'>;
 
 /** Saves `token` as a cookie. */
-export const saveSessionToken = ({
-  token,
-  expiresAt,
-}: {
-  token: string;
-  expiresAt?: Date | null;
-}) => {
+export const saveSessionToken = (
+  document: { cookie: string },
+  {
+    token,
+    expiresAt,
+  }: {
+    token: string;
+    expiresAt?: Date | null;
+  }
+) => {
   document.cookie = cookie.serialize('token', token, {
     expires: expiresAt ? new Date(expiresAt) : new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
     path: '/',
