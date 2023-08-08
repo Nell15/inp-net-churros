@@ -65,8 +65,22 @@ model User {
   outgoingGodparentRequests GodparentRequest[]         @relation("godchild")
   passwordResets            PasswordReset[]
   emailChanges              EmailChange[]
+  userLdap                  UserLdap?
 
   @@unique([schoolServer, schoolUid])
+}
+
+// Ldap attributes for users
+model UserLdap {
+  uid           String  @id @unique @db.VarChar(255)
+  user          User    @relation(fields: [uid], references: [uid], onDelete: Cascade, onUpdate: Cascade)
+  gidNumber     Int     @default(1000)
+  hasWebsite    Boolean @default(false)
+  homeDirectory String
+  loginShell    String  @default("/bin/bash")
+  loginTP       String
+  sshKey        String?
+  uidNumber     Int     @unique
 }
 
 /// Requests to become someone's godchild. Gets deleted once the request has been accepted (or denied). godchild is the requester, godparent is the requested.
@@ -256,6 +270,7 @@ model Group {
 
   articles           Article[]
   members            GroupMember[]
+  groupLdap          GroupLdap?
   school             School?             @relation(fields: [schoolId], references: [id], onUpdate: Cascade, onDelete: Restrict)
   studentAssociation StudentAssociation? @relation(fields: [studentAssociationId], references: [id], onUpdate: Cascade, onDelete: Restrict)
   events             Event[]
@@ -285,6 +300,13 @@ model GroupMember {
   member User  @relation(fields: [memberId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   @@id([groupId, memberId])
+}
+
+model GroupLdap {
+  uid        String  @unique
+  gidNumber  Int     @unique
+  hasWebsite Boolean @default(false)
+  group      Group   @relation(fields: [uid], references: [uid], onUpdate: Cascade, onDelete: Cascade)
 }
 
 /// An article is a post in a group
