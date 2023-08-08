@@ -2563,6 +2563,7 @@ __metadata:
     "@prisma/client": "npm:^4.15.0"
     "@tsconfig/node18-strictest-esm": "npm:^1.0.1"
     "@types/ldapjs": "npm:^2.2.5"
+    argon2: "npm:^0.31.0"
     ldapjs: "npm:^3.0.4"
     prisma: "npm:^4.15.0"
     tsx: "npm:^3.12.1"
@@ -3544,6 +3545,25 @@ __metadata:
   bin:
     node-pre-gyp: bin/node-pre-gyp
   checksum: e408e430752eed5a1e3603d87ed070d09ba7b1a3fed303da5522b04ce9b06da66a67ef064be350290d788483efc6b7bbf6cbc67a47d04feee4002e52a43bfbaf
+  languageName: node
+  linkType: hard
+
+"@mapbox/node-pre-gyp@npm:^1.0.11":
+  version: 1.0.11
+  resolution: "@mapbox/node-pre-gyp@npm:1.0.11"
+  dependencies:
+    detect-libc: "npm:^2.0.0"
+    https-proxy-agent: "npm:^5.0.0"
+    make-dir: "npm:^3.1.0"
+    node-fetch: "npm:^2.6.7"
+    nopt: "npm:^5.0.0"
+    npmlog: "npm:^5.0.1"
+    rimraf: "npm:^3.0.2"
+    semver: "npm:^7.3.5"
+    tar: "npm:^6.1.11"
+  bin:
+    node-pre-gyp: bin/node-pre-gyp
+  checksum: fc6d622d4c9598b8b94794cb14b2a9462a6ef3124a090cfc9038857ded52063fd80d608357fcc4e0a08e06100c86423941f8f8d75ffed63de7f07f7b1d4094e5
   languageName: node
   linkType: hard
 
@@ -6186,6 +6206,17 @@ __metadata:
     "@phc/format": "npm:^1.0.0"
     node-addon-api: "npm:^5.0.0"
   checksum: 634d0e75ab78de4cb6835a0593371aa9e96b9ddf3d6dbc457f04ac47e2df6491456f87e726814ad423bfa3fbb2616ffb19350f13c05b0a8b9859539f8a2b10fd
+  languageName: node
+  linkType: hard
+
+"argon2@npm:^0.31.0":
+  version: 0.31.0
+  resolution: "argon2@npm:0.31.0"
+  dependencies:
+    "@mapbox/node-pre-gyp": "npm:^1.0.11"
+    "@phc/format": "npm:^1.0.0"
+    node-addon-api: "npm:^7.0.0"
+  checksum: bd419b7b4817740227af01b1a2b2883e4d7f03e9e712676d31650d17e8f0a0afeb7a09133c035a1b421ecaebed6917fde7841781326ffb4dbfc9678ef10a50c3
   languageName: node
   linkType: hard
 
@@ -11926,6 +11957,15 @@ __metadata:
   dependencies:
     node-gyp: "npm:latest"
   checksum: dd981b956d93d0a3b46f028776b3fa9e7ac88830de46f0f7f691e3bbea9b53f0d47e44986c2d8a7d3a016fea3772492eafcc626c23bec60b443508efcfec5f10
+  languageName: node
+  linkType: hard
+
+"node-addon-api@npm:^7.0.0":
+  version: 7.0.0
+  resolution: "node-addon-api@npm:7.0.0"
+  dependencies:
+    node-gyp: "npm:latest"
+  checksum: 2c876ca920f92555db2ac387680a16894e192b10636cc7f5fe7de7460b49f8432ac0548849303c6d98d02a5492deeec085da7b57eabe2c6c1d0ed5ea95cdacbb
   languageName: node
   linkType: hard
 

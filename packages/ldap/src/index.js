@@ -1,6 +1,7 @@
 /* eslint-disable */
 import ldap from 'ldapjs';
 import { PrismaClient } from '../../../node_modules/@prisma/client';
+import argon2 from 'argon2';
 import dotenv from 'dotenv';
 
 // Load .env file
@@ -14,17 +15,39 @@ const prisma = new PrismaClient();
 
 // Code to handle LDAP requests
 
-// Bind
-server.bind(rootDn, async (req, res, next) => {
+server.bind('ou=users,dc=mydomain,dc=com', async (req, res, next) => {
+  const bindDN = req.dn.toString();
+  const bindPassword = req.credentials;
+
   try {
-    // Anonymous bind
-    console.log('anonymous bind request');
-    res.end();
-    return next();
+    // Look up user by bind DN (e.g., "uid=user123,ou=users,dc=mydomain,dc=com")
+    const ldapUser = await prisma.userLdap.findUnique({
+      where: { uid: bindDN },
+      include: { user:  {
+        include: {credentials: true
+          },
+        },
+      },
+    });
+
+    if (!ldapUser) {
+      return next(new ldap.InvalidCredentialsError('Invalid credentials'));
+    }
+
+    // Verify the bind password
+    if (ldapUser.user) {
+      for (const { value } of ldapUser.user.credentials) {
+        if (await argon2.verify(value, bindPassword)) {
+          // Successful bind
+          res.end();
+          return next();
+        }
+      }
+    }
+    return next(new ldap.InvalidCredentialsError('Invalid credentials'));
   } catch (error) {
-    console.error('Error handling bind request:', error);
-    res.end(new ldap.OtherError(error.message));
-    return next(error);
+    console.error('LDAP bind error:', error);
+    return next(new ldap.InvalidCredentialsError('Invalid credentials'));
   }
 });
 
@@ -87,7 +110,7 @@ server.search('cn=Subschema', async (req, res, next) => {
 
 // Search users
 server.search(`ou=people,${rootDn}`, async (req, res, next) => {
-  console.log(`ou=people,${rootDn} ` + req.scope);
+  console.log(`ou=people,${rootDn} ` + req.scope + req.dn.rdns);
   const dc = req.dn.rdns[0].attrs.cn ? req.dn.rdns[0].attrs.cn.value : 'cn';
   try {
     // Search for one user
@@ -324,13 +347,7 @@ server.search(`ou=aes,ou=groups,${rootDn}`, async (req, res, next) => {
           type: 'StudentAssociationSection',
         },
       });
-      const ldapAes = aes.map((ae) => {
-        return {
-          dn: `cn=${ae.name},ou=aes,ou=groups,${rootDn}`,
-          attributes: {
-            cn: ae.name,
-            displayName: ae.name,
-            description: ae.description,
+      const ldapAes = aes.map((ae) => {include
             objectclass: ['top', 'groupOfNames', 'AE'],
           },
         };
