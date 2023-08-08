@@ -9,6 +9,29 @@ dotenv.config();
 const rootDn = process.env.LDAP_ROOT_DN || 'dc=example, dc=com';
 const ldapPort = parseInt(process.env.LDAP_PORT) || 389;
 
+// Some constants
+const SUPPORTED_CONTROLS = [
+  '1.3.6.1.4.1.4203.1.10.1',      // ManageDsaIT
+  '2.16.840.1.113730.3.4.18',    // Assertion
+  '2.16.840.1.113730.3.4.2',     // Subentries
+];
+
+const SUPPORTED_MECHANISMS = ['PLAIN', 'EXTERNAL'];
+
+const createRootDSE = () => {
+  return {
+    configContext: 'cn=config',
+    namingContexts: [rootDn],
+    objectclass: ['top', 'OpenLDAProotDSE'],
+    structuralObjectClass: 'OpenLDAProotDSE',
+    subschemaSubentry: 'cn=Subschema',
+    supportedControl: SUPPORTED_CONTROLS,
+    supportedLDAPVersions: ['3'],
+    supportedSASLMechanisms: SUPPORTED_MECHANISMS,
+  };
+};
+
+
 // Init ldap server and prisma client
 const server = ldap.createServer();
 const prisma = new PrismaClient();
@@ -57,24 +80,8 @@ server.bind('ou=users,dc=mydomain,dc=com', async (req, res, next) => {
   }
 });
 
-// RootDSE
 server.search('', async (req, res, next) => {
-  console.log('rootDSE ' + req.scope);
   try {
-    const rootDSE = {
-      configContext: 'cn=config', // Configuration context
-      namingContexts: [rootDn], // Naming contexts
-      objectclass: ['top', 'OpenLDAProotDSE'], // Object classes
-      structuralObjectClass: 'OpenLDAProotDSE', // Structural object class
-      subschemaSubentry: 'cn=Subschema', // Subschema subentry
-      supportedControl: [
-        '1.3.6.1.4.1.4203.1.10.1',
-        '2.16.840.1.113730.3.4.18',
-        '2.16.840.1.113730.3.4.2',
-      ], // Supported controls
-      supportedLDAPVersions: ['3'], // LDAP versions
-      supportedSASLMechanisms: ['PLAIN', 'EXTERNAL'], // SASL mechanisms
-    };
     if (
       req.scope === 'base' &&
       req.filter instanceof ldap.PresenceFilter &&
@@ -82,13 +89,14 @@ server.search('', async (req, res, next) => {
     ) {
       res.send({
         dn: rootDn,
-        attributes: rootDSE,
+        attributes: createRootDSE(),
       });
     }
+
     res.end();
     return next();
   } catch (error) {
-    console.error('Error handling bind request:', error);
+    console.error('Error handling rootDSE search request:', error);
     res.end(new ldap.OtherError(error.message));
     return next(error);
   }
