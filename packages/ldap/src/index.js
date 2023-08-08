@@ -19,6 +19,12 @@ server.bind('ou=users,dc=mydomain,dc=com', async (req, res, next) => {
   const bindDN = req.dn.toString();
   const bindPassword = req.credentials;
 
+  // Anonymous bind
+  if (!bindDN || bindPassword === "") {
+    res.end();
+    return next();
+  }
+
   try {
     // Look up user by bind DN (e.g., "uid=user123,ou=users,dc=mydomain,dc=com")
     const ldapUser = await prisma.userLdap.findUnique({
