@@ -2,7 +2,7 @@
   import Alert from '$lib/components/Alert.svelte';
   import IconAdd from '~icons/mdi/plus';
   import IconPeople from '~icons/mdi/account-group';
-  import IconGear from '~icons/mdi/gear';
+  import IconGear from '~icons/mdi/gear-outline';
   import IconJoinGroup from '~icons/mdi/account-plus';
   import { me } from '$lib/session.js';
   import type { PageData } from './$types';
@@ -28,6 +28,7 @@
   import Badge from '$lib/components/Badge.svelte';
   import CarouselGroups from '$lib/components/CarouselGroups.svelte';
   import { isDark } from '$lib/theme';
+  import ButtonShare from '$lib/components/ButtonShare.svelte';
 
   const NAME_TO_ICON: Record<string, typeof SvelteComponent> = {
     facebook: IconFacebook,
@@ -101,6 +102,7 @@
           >
         {/if}
 
+        <ButtonShare />
         {#if canEditDetails}
           <ButtonSecondary icon={IconGear} href="./edit">Modifier</ButtonSecondary>
         {/if}
@@ -138,7 +140,7 @@
     {@html group.longDescriptionHtml}
   </section>
 
-  <section class="bureau">
+  <section class="board">
     <h2>
       Bureau {#if canEditMembers}
         <ButtonSecondary href="./edit/members" icon={IconGear}>Gérer</ButtonSecondary>{/if}
@@ -214,13 +216,12 @@
   {#if group.related?.length > 0}
     <section class="related">
       <h2>Voir aussi</h2>
-
       <CarouselGroups groups={group.related} />
     </section>
   {/if}
 </div>
 
-<style>
+<style lang="scss">
   .content {
     display: flex;
     flex-flow: column wrap;
@@ -230,7 +231,7 @@
   }
 
   section {
-    max-width: 600px;
+    max-width: min(600px, 100%);
     margin: 0 auto;
   }
 
@@ -242,7 +243,8 @@
 
   h1 {
     display: flex;
-    gap: 1rem;
+    flex-wrap: wrap;
+    column-gap: 1rem;
     align-items: center;
   }
 
@@ -289,15 +291,73 @@
     text-align: center;
   }
 
-  .bureau ul {
+  .board ul {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
     justify-content: center;
   }
 
-  .bureau .more {
+  .board .more {
     display: flex;
     justify-content: center;
+  }
+
+  @media (min-width: 1000px) {
+    section h2 {
+      justify-content: start;
+      text-align: left;
+    }
+
+    section {
+      margin: 0;
+    }
+
+    .content {
+      display: grid;
+      grid-template-areas: 'header header' 'description posts' 'board posts' 'subgroups events' 'related events';
+      grid-template-columns: 50% 50%;
+      column-gap: 5rem;
+      justify-content: start;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      grid-area: header;
+    }
+
+    section.description {
+      grid-area: description;
+      justify-content: start;
+
+      p {
+        text-align: left;
+      }
+    }
+
+    section.posts {
+      grid-area: posts;
+    }
+
+    section.board {
+      grid-area: board;
+
+      ul {
+        justify-content: start;
+      }
+    }
+
+    section.related {
+      grid-area: related;
+    }
+
+    section.events {
+      grid-area: events;
+    }
+
+    section.subgroups {
+      grid-area: subgroups;
+    }
   }
 </style>
