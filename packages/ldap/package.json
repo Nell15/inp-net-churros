@@ -3,7 +3,7 @@
   "dependencies": {
     "@faker-js/faker": "^7.6.0",
     "@prisma/client": "^4.15.0",
-    "ldapjs": "^2.3.3"
+    "ldapjs": "^3.0.4"
   },
   "devDependencies": {
     "@tsconfig/node18-strictest-esm": "^1.0.1",
