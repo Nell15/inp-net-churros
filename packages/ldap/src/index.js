@@ -36,7 +36,9 @@ const createRootDSE = () => {
 const server = ldap.createServer();
 const prisma = new PrismaClient();
 
-// Code to handle LDAP requests
+/////////////////////////////////////////////
+//       Code to handle LDAP requests      //
+/////////////////////////////////////////////
 
 server.bind('ou=users,dc=mydomain,dc=com', async (req, res, next) => {
   const bindDN = req.dn.toString();
@@ -361,7 +363,13 @@ server.search(`ou=aes,ou=groups,${rootDn}`, async (req, res, next) => {
           type: 'StudentAssociationSection',
         },
       });
-      const ldapAes = aes.map((ae) => {include
+      const ldapAes = aes.map((ae) => {
+        return {
+          dn: `cn=${ae.name},ou=aes,ou=groups,${rootDn}`,
+          attributes: {
+            cn: ae.name,
+            displayName: ae.name,
+            description: ae.description,
             objectclass: ['top', 'groupOfNames', 'AE'],
           },
         };
