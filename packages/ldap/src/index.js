@@ -3,6 +3,7 @@ import ldap from 'ldapjs';
 import { PrismaClient } from '../../../node_modules/@prisma/client';
 import argon2 from 'argon2';
 import dotenv from 'dotenv';
+import { parseStringToTree } from './utils';
 
 // Load .env file
 dotenv.config();
@@ -40,8 +41,8 @@ const prisma = new PrismaClient();
 //       Code to handle LDAP requests      //
 /////////////////////////////////////////////
 
-server.bind('ou=users,dc=mydomain,dc=com', async (req, res, next) => {
-  const bindDN = req.dn.toString();
+server.bind(`${rootDn}`, async (req, res, next) => {
+  const bindDN = parseStringToTree(req.dn);
   const bindPassword = req.credentials;
 
   // Anonymous bind
@@ -51,11 +52,15 @@ server.bind('ou=users,dc=mydomain,dc=com', async (req, res, next) => {
   }
 
   try {
-    // Look up user by bind DN (e.g., "uid=user123,ou=users,dc=mydomain,dc=com")
+    // Look up user by bind DN (e.g., "uid=user123,ou=users,o=school,dc=mydomain,dc=com")
     const ldapUser = await prisma.userLdap.findUnique({
-      where: { uid: bindDN },
-      include: { user:  {
-        include: {credentials: true
+      where: { 
+        uid: bindDN.findNodeByKey('cn').value,
+      },
+      include: { 
+        user: {
+          include: {
+              credentials: true,
           },
         },
       },
