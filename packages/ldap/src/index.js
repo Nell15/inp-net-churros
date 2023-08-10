@@ -60,7 +60,16 @@ server.bind(`${rootDn}`, async (req, res, next) => {
       include: { 
         user: {
           include: {
-              credentials: true,
+            credentials: true,
+            major: {
+              include: {
+                schools: {
+                  include: {
+                    schoolLdap: true
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -69,6 +78,11 @@ server.bind(`${rootDn}`, async (req, res, next) => {
     if (!ldapUser) {
       return next(new ldap.InvalidCredentialsError('Invalid credentials'));
     }
+
+    // Verify school
+    if (!ldapUser.user.major.schools.find((school) => school.schoolLdap.o == bindDN.findNodeByKey('o').value)) {
+      return next(new ldap.InvalidCredentialsError('User is not is this school'));
+    } 
 
     // Verify the bind password
     if (ldapUser.user) {
@@ -88,6 +102,7 @@ server.bind(`${rootDn}`, async (req, res, next) => {
 });
 
 server.search('', async (req, res, next) => {
+  console.log("TOP")
   try {
     if (
       req.scope === 'base' &&
@@ -129,252 +144,6 @@ server.search('cn=Subschema', async (req, res, next) => {
   }
 });
 
-// Search users
-server.search(`ou=people,${rootDn}`, async (req, res, next) => {
-  console.log(`ou=people,${rootDn} ` + req.scope + req.dn.rdns);
-  const dc = req.dn.rdns[0].attrs.cn ? req.dn.rdns[0].attrs.cn.value : 'cn';
-  try {
-    // Search for one user
-    if (dc !== 'cn' && req.filter instanceof ldap.PresenceFilter && req.scope === 'base') {
-      const user = await prisma.user.findUnique({
-        where: {
-          uid: dc,
-        },
-      });
-      if (user) {
-        res.send({
-          dn: `cn=${user.uid},ou=people,${rootDn}`,
-          attributes: {
-            cn: user.firstName + ' ' + user.lastName,
-            displayName: user.firstName + ' ' + user.lastName,
-            givenName: user.firstName,
-            homeDirectory: '/home/' + user.uid,
-            sn: user.lastName,
-            uid: user.uid,
-            mail: user.email,
-            promo: user.graduationYear,
-            objectclass: [
-              'top',
-              'person',
-              'organizationalPerson',
-              'inetOrgPerson',
-              'posixAccount',
-              'shadowAccount',
-              'Eleve',
-            ],
-          },
-        });
-      }
-      res.end();
-    } else if (dc !== 'cn' && req.filter instanceof ldap.PresenceFilter && req.scope === 'one') {
-      // End of the tree
-      res.end();
-    } else if (
-      req.filter instanceof ldap.PresenceFilter &&
-      req.filter.attribute === 'objectclass' &&
-      req.scope === 'base'
-    ) {
-      res.send({
-        dn: `ou=people,${rootDn}`,
-        attributes: {
-          objectclass: ['top', 'organizationalUnit'],
-          ou: 'people',
-        },
-      });
-      res.end();
-    } else if (
-      req.filter instanceof ldap.PresenceFilter &&
-      req.filter.attribute === 'objectclass' &&
-      req.scope === 'one'
-    ) {
-      const users = await prisma.user.findMany();
-      const ldapUsers = users.map((user) => {
-        return {
-          dn: `cn=${user.uid},ou=people,${rootDn}`,
-          attributes: {
-            cn: user.firstName + ' ' + user.lastName,
-            displayName: user.firstName + ' ' + user.lastName,
-            givenName: user.firstName,
-            homeDirectory: '/home/' + user.uid,
-            sn: user.lastName,
-            uid: user.uid,
-            mail: user.email,
-            promo: user.graduationYear,
-            objectclass: [
-              'top',
-              'person',
-              'organizationalPerson',
-              'inetOrgPerson',
-              'posixAccount',
-              'shadowAccount',
-              'Eleve',
-            ],
-          },
-        };
-      });
-      for (const user of ldapUsers.values()) res.send(user);
-      res.end();
-    } else if (req.filter instanceof ldap.EqualityFilter && req.filter.attribute === 'uid') {
-      const user = await prisma.user.findUnique({
-        where: {
-          uid: req.filter.value,
-        },
-      });
-      if (user) {
-        res.send({
-          dn: `cn=${user.uid},ou=people,${rootDn}`,
-          attributes: {
-            cn: user.firstName + ' ' + user.lastName,
-            displayName: user.firstName + ' ' + user.lastName,
-            givenName: user.firstName,
-            homeDirectory: '/home/' + user.uid,
-            sn: user.lastName,
-            uid: user.uid,
-            mail: user.email,
-            promo: user.graduationYear,
-            objectclass: [
-              'top',
-              'person',
-              'organizationalPerson',
-              'inetOrgPerson',
-              'posixAccount',
-              'shadowAccount',
-              'Eleve',
-            ],
-          },
-        });
-      }
-      res.end();
-    } else {
-      res.end();
-    }
-  } catch (error) {
-    console.error('Error handling search request:', error);
-    res.end(new ldap.OtherError(error.message));
-    return next(error);
-  }
-});
-
-
-// Search informal groups
-server.search(`ou=grp-informels,ou=groups,${rootDn}`, async (req, res, next) => {
-  console.log(`ou=grp-informels,ou=groups,${rootDn} ` + req.scope);
-  const dc = req.dn.rdns[0].attrs.cn ? req.dn.rdns[0].attrs.cn.value : 'cn';
-  try {
-    // Search for one students associations
-    if (dc !== 'cn' && req.filter instanceof ldap.PresenceFilter && req.scope === 'base') {
-      const grp_informel = await prisma.group.findFirst({
-        where: {
-          type: 'Group',
-          name: dc,
-        },
-        include: {
-          members: {
-            include: {
-              member: true,
-            },
-          },
-        },
-      });
-      if (grp_informel) {
-        res.send({
-          dn: `cn=${grp_informel.name},ou=grp-informels,ou=groups,${rootDn}`,
-          attributes: {
-            cn: grp_informel.name,
-            displayName: grp_informel.name,
-            objectclass: ['top', 'groupOfNames', 'Group Informel'],
-            memberUid: grp_informel.members.map((member) => member.member.uid),
-          },
-        });
-      }
-      res.end();
-    } else if (req.filter instanceof ldap.PresenceFilter && req.scope === 'base') {
-      res.send({
-        dn: `ou=grp-informels,ou=groups,${rootDn}`,
-        attributes: {
-          objectclass: ['top', 'organizationalUnit'],
-          ou: 'grp-informels',
-        },
-      });
-      res.end();
-    } else {
-      const grp_informels = await prisma.group.findMany({
-        where: {
-          type: 'Group',
-        },
-      });
-      const ldapGrpInformels = grp_informels.map((grp_informel) => {
-        return {
-          dn: `cn=${grp_informel.name},ou=grp-informels,ou=groups,${rootDn}`,
-          attributes: {
-            cn: grp_informel.name,
-            displayName: grp_informel.name,
-            description: grp_informel.description,
-            objectclass: ['top', 'groupOfNames', 'Group Informel'],
-          },
-        };
-      });
-      for (const grp_informel of ldapGrpInformels.values()) res.send(grp_informel);
-      res.end();
-    }
-  } catch (error) {
-    console.error('Error handling search request:', error);
-    res.end(new ldap.OtherError(error.message));
-    return next(error);
-  }
-});
-
-// Search groups
-server.search(`ou=groups,${rootDn}`, async (req, res, next) => {
-  console.log(`ou=groups,${rootDn} ` + req.scope);
-  try {
-    if (req.filter instanceof ldap.PresenceFilter && req.scope === 'base') {
-      res.send({
-        dn: `ou=groups,${rootDn}`,
-        attributes: {
-          objectclass: ['top', 'groupOfNames'],
-          ou: 'groups',
-        },
-      });
-      res.end();
-    } else {
-      res.send({
-        dn: `ou=clubs,ou=groups,${rootDn}`,
-        attributes: {
-          objectclass: ['top', 'organizationalUnit'],
-          ou: 'clubs',
-        },
-      });
-      res.send({
-        dn: `ou=ecoles,ou=groups,${rootDn}`,
-        attributes: {
-          objectclass: ['top', 'organizationalUnit'],
-          ou: 'ecoles',
-        },
-      });
-      res.send({
-        dn: `ou=aes,ou=groups,${rootDn}`,
-        attributes: {
-          objectclass: ['top', 'organizationalUnit'],
-          ou: 'aes',
-        },
-      });
-      res.send({
-        dn: `ou=grp-informels,ou=groups,${rootDn}`,
-        attributes: {
-          objectclass: ['top', 'organizationalUnit'],
-          ou: 'grp-informels',
-        },
-      });
-      res.end();
-    }
-  } catch (error) {
-    console.error('Error handling search request:', error);
-    res.end(new ldap.OtherError(error.message));
-    return next(error);
-  }
-});
-
 // Search rootDn
 server.search(rootDn, async (req, res, next) => {
   console.log(rootDn + ' ' + req.scope);
@@ -386,7 +155,7 @@ server.search(rootDn, async (req, res, next) => {
     ) {
       console.log('search request for rootDn');
       res.send({
-        dn: rootDn,
+        dn: 'etu-inpt',
         attributes: {
           objectclass: ['top', 'dcObject', 'organization'],
           o: 'inp-net',
@@ -396,20 +165,17 @@ server.search(rootDn, async (req, res, next) => {
       res.end();
       return next();
     } else {
-      res.send({
-        dn: `ou=people,${rootDn}`,
-        attributes: {
-          objectclass: ['top', 'organizationalUnit'],
-          ou: 'people',
-        },
-      });
-      res.send({
-        dn: `ou=groups,${rootDn}`,
-        attributes: {
-          objectclass: ['top', 'organizationalUnit'],
-          ou: 'groups',
-        },
-      });
+      const schoolsLdap = await prisma.schoolLdap.findMany({include: {school: true}});
+      for (let schoolLdap of schoolsLdap.values()) {
+        res.send({
+          dn: `o=${schoolLdap.o},${rootDn}`,
+          attributes: {
+            displayName: schoolLdap.school.name,
+            objectclass: ['top', 'organization', 'Ecole'],
+            o: schoolLdap.o,
+          },
+        });
+      }
       res.end();
       return next();
     }
@@ -432,3 +198,4 @@ server.unbind(async (req, res, next) => {
 server.listen(ldapPort, () => {
   console.log('LDAP server listening on %s', server.url);
 });
+prisma
