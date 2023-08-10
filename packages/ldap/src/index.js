@@ -55,7 +55,7 @@ server.bind(`${rootDn}`, async (req, res, next) => {
     // Look up user by bind DN (e.g., "uid=user123,ou=users,o=school,dc=mydomain,dc=com")
     const ldapUser = await prisma.userLdap.findUnique({
       where: { 
-        uid: bindDN.findNodeByKey('cn').value,
+        uid: bindDN.findNodeByKey('uid').value,
       },
       include: { 
         user: {

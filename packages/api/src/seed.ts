@@ -217,6 +217,13 @@ for (const [i, data] of usersData.entries()) {
           groupId: null,
         })),
       },
+      userLdap: {
+        create: {
+          uidNumber: 6000+i,
+          loginTP: 'test',
+          homeDirectory: `/home/${await createUid(data)}`,
+        }
+      }
     },
   });
 }
