@@ -66,14 +66,19 @@ function randomIdsOf<Count extends number>(
   return result as SizedArray<string, Count>;
 }
 
-await prisma.school.createMany({
-  data: [
-    { name: 'EAU', uid: 'o', color: '#00ffff' },
-    { name: 'FEU', uid: 'feu', color: '#b22222' },
-    { name: 'TERRE', uid: '3', color: '#5e3f13' },
-    { name: 'AIR', uid: 'air', color: '#d9eaff' },
-  ],
-});
+const schoolsData = [
+  { name: 'EAU', uid: 'o', color: '#00ffff', o: 'eau'},
+  { name: 'FEU', uid: 'feu', color: '#b22222', o: 'feu'},
+  { name: 'TERRE', uid: '3', color: '#5e3f13', o: 'terre'},
+  { name: 'AIR', uid: 'air', color: '#d9eaff', o: 'air'},
+]; // satisfies Array<Partial<Prisma.SchoolCreateInput>>;
+
+for (const [_, data] of schoolsData.entries()) {
+  await prisma.school.create({
+    data: 
+      { name: data.name, uid: data.uid, color: data.color, schoolLdap: {create: {o: data.o}}},
+  });
+}
 
 const schools = await prisma.school.findMany();
 
@@ -260,7 +265,7 @@ const clubsData = [
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-for (const [_, group] of clubsData.entries()) {
+for (const [i, group] of clubsData.entries()) {
   const { id: groupId } = await prisma.group.create({
     data: {
       ...group,
@@ -297,6 +302,12 @@ suos auras atra!
           ],
         },
       },
+      groupLdap: {
+        create: {
+          cn: group.name.toLowerCase() + "-" + randomChoice(['eau',"feu","terre","air"]),
+          gidNumber: i,
+        }
+      }
     },
   });
   await prisma.group.update({

@@ -82,8 +82,15 @@ CREATE TABLE "UserLdap" (
 );
 
 -- CreateTable
+CREATE TABLE "SchoolLdap" (
+    "uid" TEXT NOT NULL,
+    "o" TEXT NOT NULL
+);
+
+-- CreateTable
 CREATE TABLE "GroupLdap" (
     "uid" TEXT NOT NULL,
+    "cn" TEXT NOT NULL,
     "gidNumber" INTEGER NOT NULL,
     "hasWebsite" BOOLEAN NOT NULL DEFAULT false
 );
@@ -95,6 +102,12 @@ CREATE UNIQUE INDEX "UserLdap_uid_key" ON "UserLdap"("uid");
 CREATE UNIQUE INDEX "UserLdap_uidNumber_key" ON "UserLdap"("uidNumber");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "SchoolLdap_uid_key" ON "SchoolLdap"("uid");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SchoolLdap_o_key" ON "SchoolLdap"("o");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "GroupLdap_uid_key" ON "GroupLdap"("uid");
 
 -- CreateIndex
@@ -102,6 +115,9 @@ CREATE UNIQUE INDEX "GroupLdap_gidNumber_key" ON "GroupLdap"("gidNumber");
 
 -- AddForeignKey
 ALTER TABLE "UserLdap" ADD CONSTRAINT "UserLdap_uid_fkey" FOREIGN KEY ("uid") REFERENCES "User"("uid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SchoolLdap" ADD CONSTRAINT "SchoolLdap_uid_fkey" FOREIGN KEY ("uid") REFERENCES "School"("uid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "GroupLdap" ADD CONSTRAINT "GroupLdap_uid_fkey" FOREIGN KEY ("uid") REFERENCES "Group"("uid") ON DELETE CASCADE ON UPDATE CASCADE;

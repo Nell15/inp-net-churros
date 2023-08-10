@@ -191,6 +191,13 @@ model School {
   majors              Major[]
   studentAssociations StudentAssociation[]
   accessibleTickets   Ticket[]
+  schoolLdap          SchoolLdap?
+}
+
+model SchoolLdap {
+  uid String      @unique
+  o        String @unique
+  school   School @relation(fields: [uid], references: [uid], onUpdate: Cascade, onDelete: Cascade)
 }
 
 enum CredentialType {
@@ -304,6 +311,7 @@ model GroupMember {
 
 model GroupLdap {
   uid        String  @unique
+  cn         String
   gidNumber  Int     @unique
   hasWebsite Boolean @default(false)
   group      Group   @relation(fields: [uid], references: [uid], onUpdate: Cascade, onDelete: Cascade)
