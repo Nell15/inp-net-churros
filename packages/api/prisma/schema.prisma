@@ -72,15 +72,16 @@ model User {
 
 // Ldap attributes for users
 model UserLdap {
-  uid           String  @id @unique @db.VarChar(255)
-  user          User    @relation(fields: [uid], references: [uid], onDelete: Cascade, onUpdate: Cascade)
-  gidNumber     Int     @default(1000)
-  hasWebsite    Boolean @default(false)
+  uid           String        @id @unique @db.VarChar(255)
+  user          User          @relation(fields: [uid], references: [uid], onDelete: Cascade, onUpdate: Cascade)
+  gidNumber     Int           @default(1000)
+  hasWebsite    Boolean       @default(false)
   homeDirectory String
-  loginShell    String  @default("/bin/bash")
+  loginShell    String        @default("/bin/bash")
   loginTP       String
   sshKey        String?
-  uidNumber     Int     @unique
+  uidNumber     Int           @unique
+  ObjectClass   ObjectClass[]
 }
 
 /// Requests to become someone's godchild. Gets deleted once the request has been accepted (or denied). godchild is the requester, godparent is the requested.
@@ -194,10 +195,18 @@ model School {
   schoolLdap          SchoolLdap?
 }
 
+model ObjectClass {
+  attribute     String     @unique @id
+  schoolLdap    SchoolLdap[]
+  userLdap      UserLdap[]
+  groupLdap     GroupLdap[]
+}
+
 model SchoolLdap {
-  uid String      @unique
-  o        String @unique
-  school   School @relation(fields: [uid], references: [uid], onUpdate: Cascade, onDelete: Cascade)
+  uid         String        @unique @id
+  o           String        @unique
+  school      School        @relation(fields: [uid], references: [uid], onUpdate: Cascade, onDelete: Cascade)
+  ObjectClass ObjectClass[]
 }
 
 enum CredentialType {
@@ -310,11 +319,12 @@ model GroupMember {
 }
 
 model GroupLdap {
-  uid        String  @unique
-  cn         String
-  gidNumber  Int     @unique
-  hasWebsite Boolean @default(false)
-  group      Group   @relation(fields: [uid], references: [uid], onUpdate: Cascade, onDelete: Cascade)
+  uid         String        @unique @id
+  cn          String
+  gidNumber   Int           @unique
+  hasWebsite  Boolean       @default(false)
+  group       Group         @relation(fields: [uid], references: [uid], onUpdate: Cascade, onDelete: Cascade)
+  ObjectClass ObjectClass[]
 }
 
 /// An article is a post in a group

@@ -3,7 +3,7 @@ import ldap from 'ldapjs';
 import { PrismaClient } from '../../../node_modules/@prisma/client';
 import argon2 from 'argon2';
 import dotenv from 'dotenv';
-import { parseStringToTree } from './utils';
+import { parseStringToTree, printTree } from './utils';
 
 // Load .env file
 dotenv.config();
@@ -102,7 +102,6 @@ server.bind(`${rootDn}`, async (req, res, next) => {
 });
 
 server.search('', async (req, res, next) => {
-  console.log("TOP")
   try {
     if (
       req.scope === 'base' &&
@@ -146,16 +145,20 @@ server.search('cn=Subschema', async (req, res, next) => {
 
 // Search rootDn
 server.search(rootDn, async (req, res, next) => {
-  console.log(rootDn + ' ' + req.scope);
+  const scope = parseStringToTree(req.dn.toString());
+  console.log("DN: "+req.dn.toString())
+  console.log("Filter: "+req.filter.toString())
+  console.log("Attributes: "+req.attributes.toString())
+
   try {
     if (
       req.filter instanceof ldap.PresenceFilter &&
       req.filter.attribute === 'objectclass' &&
-      req.scope === 'base'
+      req.scope === 0
     ) {
       console.log('search request for rootDn');
       res.send({
-        dn: 'etu-inpt',
+        dn: 'dc=etu-inpt,dc=fr',
         attributes: {
           objectclass: ['top', 'dcObject', 'organization'],
           o: 'inp-net',
@@ -165,13 +168,13 @@ server.search(rootDn, async (req, res, next) => {
       res.end();
       return next();
     } else {
-      const schoolsLdap = await prisma.schoolLdap.findMany({include: {school: true}});
+      const schoolsLdap = await prisma.schoolLdap.findMany({include: {school: true, ObjectClass: true}});
       for (let schoolLdap of schoolsLdap.values()) {
         res.send({
           dn: `o=${schoolLdap.o},${rootDn}`,
           attributes: {
             displayName: schoolLdap.school.name,
-            objectclass: ['top', 'organization', 'Ecole'],
+            objectclass: schoolLdap.ObjectClass.map((object) => object.attribute),
             o: schoolLdap.o,
           },
         });
