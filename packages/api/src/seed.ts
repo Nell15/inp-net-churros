@@ -313,7 +313,6 @@ const clubsData = [
   { name: 'Zumba' },
 ];
 
- 
 for (const [i, group] of clubsData.entries()) {
   const { id: groupId } = await prisma.group.create({
     data: {

@@ -12,9 +12,9 @@ const ldapPort = parseInt(process.env.LDAP_PORT) || 389;
 
 // Some constants
 const SUPPORTED_CONTROLS = [
-  '1.3.6.1.4.1.4203.1.10.1',      // ManageDsaIT
-  '2.16.840.1.113730.3.4.18',    // Assertion
-  '2.16.840.1.113730.3.4.2',     // Subentries
+  '1.3.6.1.4.1.4203.1.10.1', // ManageDsaIT
+  '2.16.840.1.113730.3.4.18', // Assertion
+  '2.16.840.1.113730.3.4.2', // Subentries
 ];
 
 const SUPPORTED_MECHANISMS = ['PLAIN', 'EXTERNAL'];
@@ -32,7 +32,6 @@ const createRootDSE = () => {
   };
 };
 
-
 // Init ldap server and prisma client
 const server = ldap.createServer();
 const prisma = new PrismaClient();
@@ -46,7 +45,7 @@ server.bind(`${rootDn}`, async (req, res, next) => {
   const bindPassword = req.credentials;
 
   // Anonymous bind
-  if (!bindDN || bindPassword === "") {
+  if (!bindDN || bindPassword === '') {
     res.end();
     return next();
   }
@@ -54,10 +53,10 @@ server.bind(`${rootDn}`, async (req, res, next) => {
   try {
     // Look up user by bind DN (e.g., "uid=user123,ou=users,o=school,dc=mydomain,dc=com")
     const ldapUser = await prisma.userLdap.findUnique({
-      where: { 
+      where: {
         uid: bindDN.findNodeByKey('uid').value,
       },
-      include: { 
+      include: {
         user: {
           include: {
             credentials: true,
@@ -65,7 +64,7 @@ server.bind(`${rootDn}`, async (req, res, next) => {
               include: {
                 schools: {
                   include: {
-                    schoolLdap: true
+                    schoolLdap: true,
                   },
                 },
               },
@@ -80,9 +79,13 @@ server.bind(`${rootDn}`, async (req, res, next) => {
     }
 
     // Verify school
-    if (!ldapUser.user.major.schools.find((school) => school.schoolLdap.o == bindDN.findNodeByKey('o').value)) {
+    if (
+      !ldapUser.user.major.schools.find(
+        (school) => school.schoolLdap.o == bindDN.findNodeByKey('o').value
+      )
+    ) {
       return next(new ldap.InvalidCredentialsError('User is not is this school'));
-    } 
+    }
 
     // Verify the bind password
     if (ldapUser.user) {
@@ -146,9 +149,9 @@ server.search('cn=Subschema', async (req, res, next) => {
 // Search rootDn
 server.search(rootDn, async (req, res, next) => {
   const scope = parseStringToTree(req.dn.toString());
-  console.log("DN: "+req.dn.toString())
-  console.log("Filter: "+req.filter.toString())
-  console.log("Attributes: "+req.attributes.toString())
+  console.log('DN: ' + req.dn.toString());
+  console.log('Filter: ' + req.filter.toString());
+  console.log('Attributes: ' + req.attributes.toString());
 
   try {
     if (
@@ -168,7 +171,9 @@ server.search(rootDn, async (req, res, next) => {
       res.end();
       return next();
     } else {
-      const schoolsLdap = await prisma.schoolLdap.findMany({include: {school: true, ObjectClass: true}});
+      const schoolsLdap = await prisma.schoolLdap.findMany({
+        include: { school: true, ObjectClass: true },
+      });
       for (let schoolLdap of schoolsLdap.values()) {
         res.send({
           dn: `o=${schoolLdap.o},${rootDn}`,
@@ -201,4 +206,4 @@ server.unbind(async (req, res, next) => {
 server.listen(ldapPort, () => {
   console.log('LDAP server listening on %s', server.url);
 });
-prisma
+prisma;
