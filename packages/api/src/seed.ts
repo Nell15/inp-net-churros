@@ -352,7 +352,7 @@ suos auras atra!
       },
       groupLdap: {
         create: {
-          cn: group.name.toLowerCase() + '-' + randomChoice(['eau', 'feu', 'terre', 'air']),
+          cn: group.name.toLowerCase(),
           gidNumber: i,
           ObjectClass: {
             connectOrCreate: clubObjectClass.map((objectClassName) => ({

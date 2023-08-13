@@ -392,13 +392,12 @@ server.search(rootDn, async (req, res, next) => {
       }
       break;
     case 'secondKind':
+      const schoolsLdap = await prisma.schoolLdap.findMany({
+        where: context.school !== null ? { o: context.school } : undefined,
+        include: { school: true, ObjectClass: true },
+      });
       switch (context.secondKind) {
         case 'clubs':
-          const schoolsLdap = await prisma.schoolLdap.findMany({
-            where: context.school !== null ? { o: context.school } : undefined,
-            include: { school: true, ObjectClass: true },
-          });
-
           if (
             req.scope === 'base' || req.scope === 'sub'
           ) {
@@ -449,6 +448,7 @@ server.search(rootDn, async (req, res, next) => {
                   hasWebsite: clubLdap.hasWebsite,
                   memberUid: clubLdap.group.members.map((member) => member.member.userLdap.uid),
                   objectclass: clubLdap.ObjectClass.map((object) => object.attribute),
+                  hasSubordinates: false,
                 },
               });
             }
@@ -456,15 +456,131 @@ server.search(rootDn, async (req, res, next) => {
           res.end();
           return next();
         case 'grp-informels':
+          if (
+            req.scope === 'base' || req.scope === 'sub'
+          ) {
+            for (let schoolLdap of schoolsLdap.values()) {
+              res.send({
+                dn: `ou=grp-informels,ou=groups,o=${schoolLdap.o},dc=etu-inpt,dc=fr`,
+                attributes: {
+                  ou: 'grp-informels',
+                  objectclass: ['organizationalUnit'],
+                  hasSubordinates: true,
+                },
+              });
+            }
+          } 
+          if (req.scope === 'sub' || req.scope === 'one') {
+            const clubsLdap = await prisma.groupLdap.findMany({
+              //where: context.school !== null ? { group: { school: { schoolLdap: { o: context.school } } } } : undefined,
+              where: { 
+                group: { 
+                  type: 'Group',
+                  school: {
+                    schoolLdap: {
+                      o: context.school !== null ? context.school : undefined,
+                    },
+                  },
+                }
+              },
+              include: {
+                ObjectClass: true,
+                group: {
+                  include: {
+                    members: {
+                      include: {
+                        member: {
+                          include: {
+                            userLdap: true,
+                          },
+                        },
+                      },
+                    },
+                    school: {
+                      include: {
+                        schoolLdap: true,
+                      },
+                    },
+                  },
+                },
+              },
+            });
+            for (let clubLdap of clubsLdap.values()) {
+              res.send({
+                dn: `cn=${clubLdap.cn},ou=grp-informels,ou=groups,o=${clubLdap.group.school.schoolLdap.o},dc=etu-inpt,dc=fr`,
+                attributes: {
+                  cn: clubLdap.cn,
+                  displayName: clubLdap.cn,
+                  ecole: `o=${clubLdap.group.school.schoolLdap.o},dc=etu-inpt,dc=fr`,
+                  gidNumber: clubLdap.gidNumber,
+                  hasWebsite: clubLdap.hasWebsite,
+                  memberUid: clubLdap.group.members.map((member) => member.member.userLdap.uid),
+                  objectclass: clubLdap.ObjectClass.map((object) => object.attribute),
+                  hasSubordinates: false,
+                },
+              });
+            }
+          }
           res.end();
-          break;
+          return next();
         default:
           res.end();
           break;
       }
     case 'group':
-      res.end();
-      break;
+      try {
+        const groupsLdap = await prisma.groupLdap.findMany({
+          where: {
+            cn: context.group,
+          },
+          include: {
+            ObjectClass: true,
+            group: {
+              include: {
+                members: {
+                  include: {
+                    member: {
+                      include: {
+                        userLdap: true,
+                      },
+                    },
+                  },
+                },
+                school: {
+                  include: {
+                    schoolLdap: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+        if (
+          req.scope === 'base' || req.scope === 'sub'
+        ) {
+          for (let groupLdap of groupsLdap.values()) {
+            res.send({
+              dn: `cn=${groupLdap.cn},ou=${groupLdap.group.type === 'Group' ? 'grp-informels' : 'clubs'},ou=groups,o=${groupLdap.group.school.schoolLdap.o},dc=etu-inpt,dc=fr`,
+              attributes: {
+                cn: groupLdap.cn,
+                displayName: groupLdap.cn,
+                ecole: `o=${groupLdap.group.school.schoolLdap.o},dc=etu-inpt,dc=fr`,
+                gidNumber: groupLdap.gidNumber,
+                hasWebsite: groupLdap.hasWebsite,
+                memberUid: groupLdap.group.members.map((member) => member.member.userLdap.uid),
+                objectclass: groupLdap.ObjectClass.map((object) => object.attribute),
+                hasSubordinates: false,
+              },
+            });
+          }
+        }
+        res.end();
+        return next();
+      } catch (error) {
+        console.error('Error handling search request:', error);
+        res.end(new ldap.OtherError(error.message));
+        return next(error);
+      }
     case 'person':
       try {
         console.log('search request for person: ' + context.person);
@@ -515,28 +631,6 @@ server.search(rootDn, async (req, res, next) => {
               cn: userLdap.user.firstName + ' ' + userLdap.user.lastName,
               displayName: userLdap.user.firstName + ' ' + userLdap.user.lastName,
               ecole: `o=${!context.school === null ? userLdap.user.major.schools[0].schoolLdap.o : context.school},dc=etu-inpt,dc=fr`,
-              gidNumber: userLdap.gidNumber,
-              givenName: userLdap.user.firstName,
-              hasWebsite: userLdap.hasWebsite,
-              homeDirectory: userLdap.homeDirectory,
-              loginShell: userLdap.loginShell,
-              mailEcole: userLdap.user.schoolEmail,
-              objectclass: userLdap.ObjectClass.map((object) => object.attribute),
-              sn: userLdap.user.lastName,
-              snSearch: userLdap.user.lastName.toLocaleLowerCase(),
-              uidNumber: userLdap.uidNumber,
-              uid: userLdap.uid,
-              hasSubordinates: false,
-            },
-          });
-        }
-        if (req.scope === 'sub' || req.scope === 'one') {
-          res.send({
-            dn: `uid=${userLdap.uid},ou=people,o=${!context.school === null ? userLdap.user.major.schools[0].schoolLdap.o : context.school},dc=etu-inpt,dc=fr`,
-            attributes: {
-              cn: userLdap.user.firstName + ' ' + userLdap.user.lastName,
-              displayName: userLdap.user.firstName + ' ' + userLdap.user.lastName,
-              ecole: `o=${userLdap.user.major.schools[0].schoolLdap.o},dc=etu-inpt,dc=fr`,
               gidNumber: userLdap.gidNumber,
               givenName: userLdap.user.firstName,
               hasWebsite: userLdap.hasWebsite,
