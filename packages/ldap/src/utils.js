@@ -1,59 +1,33 @@
 /* eslint-disable */
 
-class TreeNode {
-  constructor(key, value) {
-    this.key = key;
-    this.value = value;
-    this.children = [];
-  }
-
-  addChild(childNode) {
-    this.children.push(childNode);
-  }
-
-  findNodeByKey(key) {
-    if (this.key === key) {
-      return this;
-    }
-
-    for (const child of this.children) {
-      const foundNode = child.findNodeByKey(key);
-      if (foundNode) {
-        return foundNode;
-      }
-    }
-
-    return null;
-  }
-}
-
-function parseStringToTree(inputString) {
-  const parts = inputString.split(',').reverse();
-  const root = new TreeNode('Root');
-  let currentNode = root;
+function parseDNToList(dn) {
+  const parts = dn.toString().split(',').reverse();
+  const list = [];
 
   for (const part of parts) {
     const [key, value] = part.split('=');
     const keyTrimmed = key.trim();
     const valueTrimmed = value.trim();
 
-    const Node = new TreeNode(keyTrimmed, valueTrimmed);
-
-    currentNode.addChild(Node);
-
-    currentNode = Node;
+    list.push({ key: keyTrimmed, value: valueTrimmed });
   }
 
-  return root;
+  return list;
 }
 
-function printTree(node, depth = 0) {
-  const indent = '  '.repeat(depth);
-  console.log(`${indent}${node.key}=${node.value}`);
+function findByKey(list, key) {
+  for (const item of list) {
+    if (item.key === key) {
+      return item.value;
+    }
+  }
+  return null;
+}
 
-  for (const child of node.children) {
-    printTree(child, depth + 1);
+function printList(list) {
+  for (const item of list) {
+    console.log(`${item.key}=${item.value}`);
   }
 }
 
-export { parseStringToTree, printTree };
+export { parseDNToList, findByKey, printList };

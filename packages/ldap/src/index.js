@@ -3,7 +3,7 @@ import ldap from 'ldapjs';
 import { PrismaClient } from '../../../node_modules/@prisma/client';
 import argon2 from 'argon2';
 import dotenv from 'dotenv';
-import { parseStringToTree, printTree } from './utils';
+import { parseDNToList, findByKey, printList } from './utils';
 
 // Load .env file
 dotenv.config();
@@ -41,7 +41,7 @@ const prisma = new PrismaClient();
 /////////////////////////////////////////////
 
 server.bind(`${rootDn}`, async (req, res, next) => {
-  const bindDN = parseStringToTree(req.dn);
+  const bindDN = parseDNToList(req.dn);
   const bindPassword = req.credentials;
 
   // Anonymous bind
@@ -54,7 +54,7 @@ server.bind(`${rootDn}`, async (req, res, next) => {
     // Look up user by bind DN (e.g., "uid=user123,ou=users,o=school,dc=mydomain,dc=com")
     const ldapUser = await prisma.userLdap.findUnique({
       where: {
-        uid: bindDN.findNodeByKey('uid').value,
+        uid: findByKey(bindDN,'uid'),
       },
       include: {
         user: {
@@ -81,7 +81,7 @@ server.bind(`${rootDn}`, async (req, res, next) => {
     // Verify school
     if (
       !ldapUser.user.major.schools.find(
-        (school) => school.schoolLdap.o == bindDN.findNodeByKey('o').value
+        (school) => school.schoolLdap.o == findByKey(bindDN,'o'),
       )
     ) {
       return next(new ldap.InvalidCredentialsError('User is not is this school'));
@@ -148,7 +148,7 @@ server.search('cn=Subschema', async (req, res, next) => {
 
 // Search rootDn
 server.search(rootDn, async (req, res, next) => {
-  const scope = parseStringToTree(req.dn.toString());
+  const scope = parseDNToList(req.dn);
   console.log('DN: ' + req.dn.toString());
   console.log('Filter: ' + req.filter.toString());
   console.log('Attributes: ' + req.attributes.toString());
