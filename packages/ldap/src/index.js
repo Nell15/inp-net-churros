@@ -170,6 +170,7 @@ server.search(rootDn, async (req, res, next) => {
               objectclass: ['top', 'dcObject', 'organization'],
               o: 'inp-net',
               dc: 'etu-inpt',
+              hasSubordinates: true,
             },
           });
           res.end();
@@ -185,6 +186,7 @@ server.search(rootDn, async (req, res, next) => {
                 displayName: schoolLdap.school.name,
                 objectclass: schoolLdap.ObjectClass.map((object) => object.attribute),
                 o: schoolLdap.o,
+                hasSubordinates: true,
               },
             });
           }
@@ -215,6 +217,7 @@ server.search(rootDn, async (req, res, next) => {
               displayName: schoolLdap.school.name,
               o: schoolLdap.o,
               objectclass: schoolLdap.ObjectClass.map((object) => object.attribute),
+              hasSubordinates: true,
             },
           });
           res.send({
@@ -222,6 +225,7 @@ server.search(rootDn, async (req, res, next) => {
             attributes: {
               objectclass: ['organizationalUnit'],
               ou: 'people',
+              hasSubordinates: true,
             },
             }
           );
@@ -230,6 +234,7 @@ server.search(rootDn, async (req, res, next) => {
             attributes: {
               objectclass: ['organizationalUnit'],
               ou: 'groups',
+              hasSubordinates: true,
             },
           });
           res.send({
@@ -237,6 +242,7 @@ server.search(rootDn, async (req, res, next) => {
             attributes: {
               objectclass: ['organizationalUnit'],
               ou: 'filieres',
+              hasSubordinates: true,
             },
           });
           res.send({
@@ -244,6 +250,7 @@ server.search(rootDn, async (req, res, next) => {
             attributes: {
               objectclass: ['organizationalUnit'],
               ou: 'admin',
+              hasSubordinates: true,
             },
           });
           res.send({
@@ -251,6 +258,7 @@ server.search(rootDn, async (req, res, next) => {
             attributes: {
               objectclass: ['organizationalUnit'],
               ou: 'aliases',
+              hasSubordinates: true,
             },
           });
           res.end();
@@ -284,6 +292,7 @@ server.search(rootDn, async (req, res, next) => {
                   attributes: {
                     objectclass: ['organizationalUnit'],
                     ou: 'people',
+                    hasSubordinates: true,
                   },
                 });
               }
