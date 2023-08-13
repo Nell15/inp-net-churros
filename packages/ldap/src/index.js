@@ -12,12 +12,34 @@ const ldapPort = parseInt(process.env.LDAP_PORT) || 389;
 
 // Some constants
 const SUPPORTED_CONTROLS = [
-  '1.3.6.1.4.1.4203.1.10.1', // ManageDsaIT
-  '2.16.840.1.113730.3.4.18', // Assertion
-  '2.16.840.1.113730.3.4.2', // Subentries
+  '1.3.6.1.4.1.4203.1.9.1.1', // LDAP Content Synchronization Control
+  '2.16.840.1.113730.3.4.18', // LDAP Proxied Authorization Control
+  '2.16.840.1.113730.3.4.2', // ManageDsaIT Control
+  '1.3.6.1.4.1.4203.1.10.1', // Subentries in LDAP
+  '1.3.6.1.1.22', // Don't Use Copy Control
+  '1.2.840.113556.1.4.319', // Simple Paged Results Manipulation Control Extension
+  '1.2.826.0.1.3344810.2.3', // Matched Values Control
+  '1.3.6.1.1.13.2', // Post-Read Controls
+  '1.3.6.1.1.13.1', // Pre-Read Controls
+  '1.3.6.1.1.12', // Assertion Control
 ];
 
-const SUPPORTED_MECHANISMS = ['PLAIN', 'EXTERNAL'];
+const SUPPORTED_EXTENSIONS = [
+'1.3.6.1.4.1.4203.1.11.1', // LDAP Password Modify Extended Operation
+'1.3.6.1.4.1.4203.1.11.3', // Who Am I? Extended Operation
+'1.3.6.1.1.8', // Cancel Operation. RFC 3909 extension
+];
+
+const SUPPORTED_FEATURES = [
+  '1.3.6.1.1.14', // Modify-Increment Extension
+  '1.3.6.1.4.1.4203.1.5.1', // All Operational Attribute
+  '1.3.6.1.4.1.4203.1.5.2', // Requesting Attributes by Object Class
+  '1.3.6.1.4.1.4203.1.5.3', // LDAP Absolute True and False Filters
+  '1.3.6.1.4.1.4203.1.5.4', // Language Tags
+  '1.3.6.1.4.1.4203.1.5.5', // Language Ranges
+];
+
+const SUPPORTED_MECHANISMS = ['DIGEST-MD5', 'CRAM-MD5', 'NTLM'];
 
 const createRootDSE = () => {
   return {
@@ -27,6 +49,8 @@ const createRootDSE = () => {
     structuralObjectClass: 'OpenLDAProotDSE',
     subschemaSubentry: 'cn=Subschema',
     supportedControl: SUPPORTED_CONTROLS,
+    supportedExtension: SUPPORTED_EXTENSIONS,
+    supportedFeatures: SUPPORTED_FEATURES,
     supportedLDAPVersions: ['3'],
     supportedSASLMechanisms: SUPPORTED_MECHANISMS,
   };
@@ -671,4 +695,3 @@ server.unbind(async (req, res, next) => {
 server.listen(ldapPort, () => {
   console.log('LDAP server listening on %s', server.url);
 });
-prisma;
