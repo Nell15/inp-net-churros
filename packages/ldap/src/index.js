@@ -327,6 +327,7 @@ server.search(rootDn, async (req, res, next) => {
                     snSearch: userLdap.user.lastName.toLocaleLowerCase(),
                     uidNumber: userLdap.uidNumber,
                     uid: userLdap.uid,
+                    hasSubordinates: false,
                   },
                 });
               }
@@ -406,7 +407,7 @@ server.search(rootDn, async (req, res, next) => {
           req.scope === 'base'
         ) {
           res.send({
-            dn: `uid=${userLdap.uid},ou=people,o=,dc=etu-inpt,dc=fr`,
+            dn: `uid=${userLdap.uid},ou=people,o=${!context.school === null ? userLdap.user.major.schools[0].schoolLdap.o : context.school},dc=etu-inpt,dc=fr`,
             attributes: {
               cn: userLdap.user.firstName + ' ' + userLdap.user.lastName,
               displayName: userLdap.user.firstName + ' ' + userLdap.user.lastName,
@@ -422,13 +423,14 @@ server.search(rootDn, async (req, res, next) => {
               snSearch: userLdap.user.lastName.toLocaleLowerCase(),
               uidNumber: userLdap.uidNumber,
               uid: userLdap.uid,
+              hasSubordinates: false,
             },
           });
           res.end();
           return next();
         } else if (req.scope === 'one') {
           res.send({
-            dn: `uid=${userLdap.uid},ou=people,o=,dc=etu-inpt,dc=fr`,
+            dn: `uid=${userLdap.uid},ou=people,o=${!context.school === null ? userLdap.user.major.schools[0].schoolLdap.o : context.school},dc=etu-inpt,dc=fr`,
             attributes: {
               cn: userLdap.user.firstName + ' ' + userLdap.user.lastName,
               displayName: userLdap.user.firstName + ' ' + userLdap.user.lastName,
@@ -444,6 +446,7 @@ server.search(rootDn, async (req, res, next) => {
               snSearch: userLdap.user.lastName.toLocaleLowerCase(),
               uidNumber: userLdap.uidNumber,
               uid: userLdap.uid,
+              hasSubordinates: false,
             },
           });
           res.end();
