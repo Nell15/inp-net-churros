@@ -39,7 +39,7 @@ function scope(list) {
   const scope = {
     school: findByKey(list, 'o') ? findByKey(list, 'o')[0] : null,
     kind: findByKey(list, 'ou') ? findByKey(list, 'ou')[0] : null,
-    section: findByKey(list, 'ou') ? findByKey(list, 'ou')[1] : null,
+    secondKind: findByKey(list, 'ou') ? findByKey(list, 'ou')[1] : null,
     person: findByKey(list, 'uid') ? findByKey(list, 'uid')[0] : null,
     group: findByKey(list, 'cn') ? findByKey(list, 'cn')[0] : null,
   }
@@ -47,8 +47,8 @@ function scope(list) {
     return { ...scope, type: 'person' }
   } else if (scope.group) {
     return { ...scope, type: 'group' }
-  } else if (scope.section) {
-    return { ...scope, type: 'section' }
+  } else if (scope.secondKind) {
+    return { ...scope, type: 'secondKind' }
   } else if (scope.kind) {
     return { ...scope, type: 'kind' }
   } else if (scope.school) {
