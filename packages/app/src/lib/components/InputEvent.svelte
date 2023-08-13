@@ -26,20 +26,15 @@
   export let allow: string[] = [];
   export let except: string[] = [];
   export let event: Event | undefined = undefined;
-  const uid = '';
-
-  $: console.log({ uid, id, event });
 
   function allowed(uid: string) {
     const result =
       (allow.length > 0 ? allow.includes(uid) : true) &&
       (except.length > 0 ? !except.includes(uid) : true);
-    if (!result) console.log(`${uid} disallowed`);
     return result;
   }
 
   async function search(query: string): Promise<Event[]> {
-    console.log(`search(${query})`);
     const { searchEvents } = await $zeus.query({
       searchEvents: [
         { q: query, groupUid },
@@ -53,7 +48,6 @@
         },
       ],
     });
-    console.log(searchEvents);
     return searchEvents.filter(({ uid }) => allowed(uid));
   }
 </script>
@@ -87,7 +81,7 @@
         circle
         insideProse
         icon={IconEdit}
-        href="/club/{groupUid}/event/{event.uid}/edit?{new URLSearchParams({
+        href="/events/{groupUid}/{event.uid}/edit?{new URLSearchParams({
           back: $page.url.pathname,
         }).toString()}"
       />
@@ -95,7 +89,7 @@
       <ButtonSecondary
         circle
         icon={IconPlus}
-        href="/club/{groupUid}/event/create?{new URLSearchParams({
+        href="/events/{groupUid}/create?{new URLSearchParams({
           back: $page.url.pathname,
         }).toString()}"
       />

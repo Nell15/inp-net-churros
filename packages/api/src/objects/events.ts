@@ -84,11 +84,18 @@ builder.queryField('events', (t) =>
   t.prismaConnection({
     type: EventType,
     cursor: 'id',
-    async resolve(query, _, {}, { user }) {
+    args: {
+      future: t.arg.boolean({ required: false }),
+    },
+    async resolve(query, _, { future }, { user }) {
+      future = future ?? false;
       if (!user) {
         return prisma.event.findMany({
           ...query,
-          where: { visibility: VisibilityPrisma.Public },
+          where: {
+            visibility: VisibilityPrisma.Public,
+            startsAt: future ? { gte: new Date() } : undefined,
+          },
         });
       }
 
@@ -106,6 +113,7 @@ builder.queryField('events', (t) =>
           visibility: {
             notIn: [VisibilityPrisma.Private, VisibilityPrisma.Unlisted],
           },
+          startsAt: future ? { gte: new Date() } : undefined,
           OR: [
             // Completely public events
             {
@@ -315,8 +323,7 @@ builder.mutationField('upsertEvent', (t) =>
       { user }
     ) {
       const connectFromListOfUids = (uids: string[]) => ({ connect: uids.map((uid) => ({ uid })) });
-      console.log(JSON.stringify({ ticketGroups, tickets }));
-      console.log(lydiaAccountId);
+      const connectFromListOfIds = (uids: string[]) => ({ connect: uids.map((id) => ({ id })) });
       // First, delete all the tickets and ticket groups that are not in the new list
 
       if (id) {
@@ -403,7 +410,6 @@ builder.mutationField('upsertEvent', (t) =>
             : {},
         },
       });
-      console.log(`Upserted the event without tickets or ticket groups`);
       // Update the existing tickets
       await Promise.all(
         tickets
@@ -422,11 +428,11 @@ builder.mutationField('upsertEvent', (t) =>
                 },
                 openToGroups: connectFromListOfUids(ticket.openToGroups),
                 openToSchools: connectFromListOfUids(ticket.openToSchools),
+                openToMajors: connectFromListOfIds(ticket.openToMajors),
               },
             })
           )
       );
-      console.log('Updated the existing tickets');
       // Create the new tickets
       for (const [i, ticket] of Object.entries(tickets.filter((t) => !t.id))) {
         const newTicket = await prisma.ticket.create({
@@ -438,6 +444,7 @@ builder.mutationField('upsertEvent', (t) =>
             id: undefined,
             openToGroups: connectFromListOfUids(ticket.openToGroups),
             openToSchools: connectFromListOfUids(ticket.openToSchools),
+            openToMajors: connectFromListOfIds(ticket.openToMajors),
             eventId: event.id,
             uid: await createTicketUid(ticket.name),
           },
@@ -445,8 +452,6 @@ builder.mutationField('upsertEvent', (t) =>
 
         tickets[Number.parseInt(i, 10)] = { ...ticket, id: newTicket.id };
       }
-
-      console.log('Created the new tickets outside of groups');
 
       // Create the group's new tickets
       for (const [i, ticketGroup] of Object.entries(ticketGroups)) {
@@ -460,6 +465,7 @@ builder.mutationField('upsertEvent', (t) =>
               id: undefined,
               openToGroups: connectFromListOfUids(ticket.openToGroups),
               openToSchools: connectFromListOfUids(ticket.openToSchools),
+              openToMajors: connectFromListOfIds(ticket.openToMajors),
               eventId: event.id,
               uid: await createTicketUid(ticket.name),
             },
@@ -471,8 +477,6 @@ builder.mutationField('upsertEvent', (t) =>
           };
         }
       }
-
-      console.log("Created the new ticket groups' tickets");
 
       // Update the existing ticket groups
       await Promise.all(
@@ -492,8 +496,6 @@ builder.mutationField('upsertEvent', (t) =>
           )
       );
 
-      console.log('Updated the existing ticket groups');
-
       // Create the new ticket groups
       for (const [i, ticketGroup] of Object.entries(ticketGroups.filter((t) => !t.id))) {
         const newTicketGroup = await prisma.ticketGroup.create({
@@ -508,8 +510,6 @@ builder.mutationField('upsertEvent', (t) =>
         });
         ticketGroups[Number.parseInt(i, 10)] = { ...ticketGroup, id: newTicketGroup.id };
       }
-
-      console.log('Created the new ticket groups');
 
       const result = await prisma.event.findUniqueOrThrow({
         ...query,
@@ -531,7 +531,6 @@ builder.mutationField('upsertEvent', (t) =>
 
       await scheduleShotgunNotifications(finalEvent);
 
-      console.log("Updated the event's tickets and ticket groups");
       return result;
     },
   })

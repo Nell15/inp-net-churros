@@ -20,18 +20,16 @@
   export let user: User | undefined = undefined;
 
   // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-  $: avatarHref = user ? `/user/${user?.uid ?? ''}` : '';
+  $: avatarHref = user ? `/users/${user?.uid ?? ''}` : '';
 
   function allowed(uid: string) {
     const result =
       (allow.length > 0 ? allow.includes(uid) : true) &&
       (except.length > 0 ? !except.includes(uid) : true);
-    if (!result) console.log(`${uid} disallowed`);
     return result;
   }
 
   async function search(query: string): Promise<User[]> {
-    console.log(`search(${query})`);
     const { searchUsers } = await $zeus.query({
       searchUsers: [
         { q: query },

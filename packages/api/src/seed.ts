@@ -68,34 +68,46 @@ function randomIdsOf<Count extends number>(
 }
 
 const userObjectClass = [
-  "top","person","organizationalPerson","inetOrgPerson","qmailUser","posixAccount","shadowAccount","Eleve"
-]
+  'top',
+  'person',
+  'organizationalPerson',
+  'inetOrgPerson',
+  'qmailUser',
+  'posixAccount',
+  'shadowAccount',
+  'Eleve',
+];
 
-const schoolObjectClass = ["top","organization","Ecole"]
+const schoolObjectClass = ['top', 'organization', 'Ecole'];
 
-const groupObjectClass = ["top","posixGroup","Groupe"]
+const groupObjectClass = ['top', 'posixGroup', 'Groupe'];
 
-const clubObjectClass = ["top","posixGroup","Groupe","Club"]
+const clubObjectClass = ['top', 'posixGroup', 'Groupe', 'Club'];
 
 const schoolsData = [
-  { name: 'EAU', uid: 'o', color: '#00ffff', o: 'eau'},
-  { name: 'FEU', uid: 'feu', color: '#b22222', o: 'feu'},
-  { name: 'TERRE', uid: '3', color: '#5e3f13', o: 'terre'},
-  { name: 'AIR', uid: 'air', color: '#d9eaff', o: 'air'},
+  { name: 'EAU', uid: 'o', color: '#00ffff', o: 'eau' },
+  { name: 'FEU', uid: 'feu', color: '#b22222', o: 'feu' },
+  { name: 'TERRE', uid: '3', color: '#5e3f13', o: 'terre' },
+  { name: 'AIR', uid: 'air', color: '#d9eaff', o: 'air' },
 ]; // satisfies Array<Partial<Prisma.SchoolCreateInput>>;
 
 for (const [_, data] of schoolsData.entries()) {
   await prisma.school.create({
-    data: { 
+    data: {
       name: data.name,
       uid: data.uid,
       color: data.color,
-      schoolLdap: {create: {o: data.o, ObjectClass: {
-        connectOrCreate: schoolObjectClass.map(objectClassName => ({
-          where: { attribute: objectClassName },
-          create: { attribute: objectClassName },
-        })),
-      }}},
+      schoolLdap: {
+        create: {
+          o: data.o,
+          ObjectClass: {
+            connectOrCreate: schoolObjectClass.map((objectClassName) => ({
+              where: { attribute: objectClassName },
+              create: { attribute: objectClassName },
+            })),
+          },
+        },
+      },
     },
   });
 }
@@ -162,23 +174,22 @@ for (const asso of studentAssociations) {
         lyiaAccounts: {
           create: {
             name: `${asso.school.name.toUpperCase()} ${name.toUpperCase()}`,
-            uid: `${slug(asso.school.name)}-${slug(name)}`,
             privateToken: 'a',
             vendorToken: 'a',
           },
         },
         groupLdap: {
           create: {
-            cn: name.toLowerCase() + "-" + randomChoice(['eau',"feu","terre","air"]),
+            cn: name.toLowerCase() + '-' + randomChoice(['eau', 'feu', 'terre', 'air']),
             gidNumber: randomInt(5000),
             ObjectClass: {
-              connectOrCreate: userObjectClass.map(objectClassName => ({
+              connectOrCreate: userObjectClass.map((objectClassName) => ({
                 where: { attribute: objectClassName },
                 create: { attribute: objectClassName },
               })),
-            }
-          }
-        }
+            },
+          },
+        },
       },
     });
   }
@@ -256,17 +267,17 @@ for (const [i, data] of usersData.entries()) {
       },
       userLdap: {
         create: {
-          uidNumber: 6000+i,
+          uidNumber: 6000 + i,
           loginTP: 'test',
           homeDirectory: `/home/${await createUid(data)}`,
           ObjectClass: {
-            connectOrCreate: userObjectClass.map(objectClassName => ({
+            connectOrCreate: userObjectClass.map((objectClassName) => ({
               where: { attribute: objectClassName },
               create: { attribute: objectClassName },
             })),
-          }
-        }
-      }
+          },
+        },
+      },
     },
   });
 }
@@ -302,7 +313,7 @@ const clubsData = [
   { name: 'Zumba' },
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 for (const [i, group] of clubsData.entries()) {
   const { id: groupId } = await prisma.group.create({
     data: {
@@ -342,16 +353,16 @@ suos auras atra!
       },
       groupLdap: {
         create: {
-          cn: group.name.toLowerCase() + "-" + randomChoice(['eau',"feu","terre","air"]),
+          cn: group.name.toLowerCase() + '-' + randomChoice(['eau', 'feu', 'terre', 'air']),
           gidNumber: i,
           ObjectClass: {
-            connectOrCreate: clubObjectClass.map(objectClassName => ({
+            connectOrCreate: clubObjectClass.map((objectClassName) => ({
               where: { attribute: objectClassName },
               create: { attribute: objectClassName },
             })),
-          }
-        }
-      }
+          },
+        },
+      },
     },
   });
   await prisma.group.update({
@@ -371,16 +382,16 @@ let Intégration2022 = await prisma.group.create({
     links: { create: [] },
     groupLdap: {
       create: {
-        cn: "integration-2022-" + randomChoice(['eau',"feu","terre","air"]),
+        cn: 'integration-2022-' + randomChoice(['eau', 'feu', 'terre', 'air']),
         gidNumber: randomInt(5000),
         ObjectClass: {
-          connectOrCreate: groupObjectClass.map(objectClassName => ({
+          connectOrCreate: groupObjectClass.map((objectClassName) => ({
             where: { attribute: objectClassName },
             create: { attribute: objectClassName },
           })),
-        }
-      }
-    }
+        },
+      },
+    },
   },
 });
 

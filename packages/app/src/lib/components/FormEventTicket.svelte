@@ -34,6 +34,7 @@
     openToPromotions: number[];
     openToSchools: Array<{ name: string; color: string; uid: string }>;
     openToGroups: Array<{ name: string; uid: string; pictureFile: string }>;
+    openToMajors: Array<{ name: string; shortName: string; id: string }>;
     openToExternal?: boolean | null | undefined;
     openToAlumni?: boolean | null | undefined;
     openToNonAEContributors?: boolean | null | undefined;
@@ -177,6 +178,26 @@
       />
     </InputField>
 
+    <InputField label="Filières">
+      <InputSearchObjectList
+        search={async (query) => {
+          const { majors } = await $zeus.query({
+            majors: {
+              name: true,
+              shortName: true,
+              id: true,
+            },
+          });
+          const searcher = new Fuse(majors, { keys: ['name', 'shortName'] });
+          return searcher.search(query).map((r) => r.item);
+        }}
+        labelKey="shortName"
+        valueKey="id"
+        values={ticket.openToMajors.map((r) => r.id)}
+        bind:objects={ticket.openToMajors}
+      />
+    </InputField>
+
     <div class="conditions">
       <InputCheckbox
         labelFalse="Interdit"
@@ -257,6 +278,7 @@
   header,
   footer {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
 

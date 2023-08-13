@@ -31,6 +31,13 @@ module.exports = {
     '@typescript-eslint/no-non-null-assertion': 'off',
     '@typescript-eslint/no-throw-literal': 'off',
     '@typescript-eslint/prefer-nullish-coalescing': 'off',
+    '@typescript-eslint/no-unused-vars': [
+      'error',
+      {
+        varsIgnorePattern: '^_',
+        argsIgnorePattern: '^_',
+      },
+    ],
     'capitalized-comments': 'off',
     'new-cap': 'off',
     'no-await-in-loop': 'off',
@@ -44,6 +51,18 @@ module.exports = {
   },
   overrides: [
     {
+      files: ['*.ts'],
+      excludedFiles: ['packages/api/scripts/*'],
+      rules: {
+        'no-console': [
+          'error',
+          {
+            allow: ['warn', 'error', 'info', 'group', 'groupEnd'],
+          },
+        ],
+      },
+    },
+    {
       files: ['*.svelte'],
       processor: 'svelte3/svelte3',
       rules: {
@@ -55,16 +74,15 @@ module.exports = {
         '@typescript-eslint/no-unsafe-call': 'off',
         '@typescript-eslint/no-unsafe-member-access': 'off',
         '@typescript-eslint/no-unsafe-return': 'off',
-        '@typescript-eslint/no-unused-vars': [
-          'error',
-          {
-            varsIgnorePattern: '^_',
-            argsIgnorePattern: '^_',
-          },
-        ],
         'no-undef-init': 'off',
         'unicorn/consistent-destructuring': 'off',
         'unicorn/no-useless-undefined': 'off',
+        'no-console': [
+          'error',
+          {
+            allow: ['warn', 'error', 'info', 'group', 'groupEnd'],
+          },
+        ],
       },
     },
   ],

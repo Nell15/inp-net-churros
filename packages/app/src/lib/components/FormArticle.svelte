@@ -4,7 +4,7 @@
   import { goto } from '$app/navigation';
   import EventSearch from './InputEvent.svelte';
   import { page } from '$app/stores';
-  import { _articleQuery } from '../../routes/club/[group]/post/[post]/edit/+page';
+  import { _articleQuery } from '../../routes/posts/[group]/[uid]/edit/+page';
   import DateInput from '$lib/components/InputDate.svelte';
   import { DISPLAY_VISIBILITIES, HELP_VISIBILITY } from '$lib/display';
   import ButtonPrimary from './ButtonPrimary.svelte';
@@ -13,6 +13,8 @@
   import InputLongText from './InputLongText.svelte';
   import InputLinks from '$lib/components/InputLinks.svelte';
 
+  export let afterGoTo: (article: typeof data['article']) => string = (article) =>
+    `/posts/${article.group.uid}/${article.uid}/edit`;
   export let hideEvent = false;
   export let data: {
     article: {
@@ -60,8 +62,6 @@
   let { id, event, eventId, title, author, body, publishedAt, visibility, links, group } =
     data.article;
 
-  $: console.log(publishedAt);
-
   let loading = false;
   const updateArticle = async () => {
     if (loading) return;
@@ -98,14 +98,11 @@
       serverError = '';
       data.article = upsertArticle.data;
       ({ id, event, eventId, title, author, body, publishedAt, links, group } = data.article);
-      if (data.article.uid)
-        await goto(`/club/${data.article.group.uid}/post/${data.article.uid}/edit`);
+      if (data.article.uid) await goto(afterGoTo(data.article));
     } finally {
       loading = false;
     }
   };
-
-  $: console.log({ eventId });
 </script>
 
 <form on:submit|preventDefault={updateArticle}>

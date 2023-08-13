@@ -14,10 +14,12 @@
   import BadgePaymentStatus from '$lib/components/BadgePaymentStatus.svelte';
   import ButtonSecondary from '$lib/components/ButtonSecondary.svelte';
   import { DISPLAY_PAYMENT_METHODS } from '$lib/display';
+  import { me } from '$lib/session';
 
   let actualTheme: string;
-
   let confirmingCancellation = false;
+  let paymentLoading = false;
+  let serverError = '';
 
   // For this page only, force light theme
   onMount(() => {
@@ -41,7 +43,7 @@
     createdAt,
     paymentMethod,
   } = data.registration;
-  let phone: string;
+  let phone = $me?.phone ?? '';
   let qrcodeViewbox: string;
   let qrcodeDim: number;
   let qrcodePath: string;
@@ -61,26 +63,46 @@
     </div>
   </h1>
 
-  {#if !paid}
+  {#if !paid && paymentMethod === PaymentMethod.Lydia}
     <form
       class="pay"
       on:submit|preventDefault={async () => {
-        await $zeus.mutate({
+        paymentLoading = true;
+        const { paidRegistration } = await $zeus.mutate({
           paidRegistration: [
             { regId: id, phone, beneficiary, paymentMethod: PaymentMethod.Lydia },
             {
               __typename: true,
+              '...on Error': { message: true },
+              '...on MutationPaidRegistrationSuccess': {
+                data: {
+                  __typename: true,
+                },
+              },
             },
           ],
         });
-        window.location.reload();
+        if (paidRegistration.__typename === 'Error') {
+          serverError = paidRegistration.message;
+          paymentLoading = false;
+        } else {
+          window.location.reload();
+        }
       }}
     >
-      <InputText type="tel" label="Numéro de téléphone" bind:value={phone} />
+      <InputText initial={$me?.phone} type="tel" label="Numéro de téléphone" bind:value={phone} />
       <section class="submit">
-        <ButtonPrimary submits>Payer {ticket.price}€</ButtonPrimary>
+        <ButtonPrimary loading={paymentLoading} submits
+          >Payer {Intl.NumberFormat('fr-FR', {
+            style: 'currency',
+            currency: 'EUR',
+          }).format(ticket.price)}</ButtonPrimary
+        >
       </section>
     </form>
+    {#if serverError}
+      <Alert theme="danger">{serverError}</Alert>
+    {/if}
   {/if}
 
   <section class="code">
@@ -114,7 +136,7 @@
       <dd>{DISPLAY_PAYMENT_METHODS[paymentMethod ?? 'Other']}</dd>
       <dt>Évènement</dt>
       <dd>
-        <a href="/club/{ticket.event.group.uid}/event/{ticket.event.uid}">{ticket.event.title}</a>
+        <a href="/events/{ticket.event.group.uid}/{ticket.event.uid}">{ticket.event.title}</a>
         {#if ticket.event.startsAt}({dateTimeFormatter.format(
             new Date(ticket.event.startsAt)
           )}){/if}
@@ -124,36 +146,43 @@
     </dl>
   </section>
 
-  {#if paid}
-    <section class="cancel">
-      {#if !confirmingCancellation}
-        <ButtonSecondary
-          danger
-          on:click={() => {
+  <section class="cancel">
+    {#if !confirmingCancellation}
+      <ButtonSecondary
+        danger
+        on:click={async () => {
+          if (paid) {
             confirmingCancellation = true;
-          }}><IconCancel /> Libérer ma place</ButtonSecondary
-        >
-      {:else}
-        <Alert theme="danger">
-          <div class="confirm-cancellation">
-            <h2>Es-tu sûr·e ?</h2>
-            <p>
-              Il n'est pas possible de revenir en arrière. Tu devras de nouveau prendre une place
-              (s'il en reste) si tu veux de nouveau en réserver une.
-            </p>
-            <ButtonPrimary
-              on:click={async () => {
-                await $zeus.mutate({
-                  deleteRegistration: [{ id }, true],
-                });
-                await goto('..');
-              }}>Oui, je confirme</ButtonPrimary
-            >
-          </div>
-        </Alert>
-      {/if}
-    </section>
-  {/if}
+          } else {
+            await $zeus.mutate({
+              deleteRegistration: [{ id }, true],
+            });
+            await goto('..');
+          }
+        }}
+        ><IconCancel />
+        {#if paid}Libérer{:else}Annuler{/if} ma place</ButtonSecondary
+      >
+    {:else}
+      <Alert theme="danger">
+        <div class="confirm-cancellation">
+          <h2>Es-tu sûr·e ?</h2>
+          <p>
+            Il n'est pas possible de revenir en arrière. Tu devras de nouveau prendre une place
+            (s'il en reste) si tu veux de nouveau en réserver une.
+          </p>
+          <ButtonPrimary
+            on:click={async () => {
+              await $zeus.mutate({
+                deleteRegistration: [{ id }, true],
+              });
+              await goto('..');
+            }}>Oui, je confirme</ButtonPrimary
+          >
+        </div>
+      </Alert>
+    {/if}
+  </section>
 
   <section class="explainer">
     <p class="typo-details">
@@ -220,7 +249,6 @@
     flex-wrap: wrap;
     gap: 1rem;
     align-items: end;
-    max-width: 400px;
     margin: 0 auto;
   }
 
@@ -236,5 +264,39 @@
     gap: 1rem;
     max-width: 600px;
     margin: 0 auto;
+  }
+
+  @media (min-width: 1000px) {
+    .content {
+      display: grid;
+      grid-template-areas: 'header header' 'pay pay' 'qrcode details' 'qrcode cancel' 'fineprint fineprint';
+      max-width: 1000px;
+    }
+
+    section.explainer {
+      grid-area: fineprint;
+      max-width: unset;
+      margin-top: 2rem;
+    }
+
+    section.cancel {
+      grid-area: cancel;
+    }
+
+    section.info {
+      grid-area: details;
+    }
+
+    section.code {
+      grid-area: qrcode;
+    }
+
+    h1 {
+      grid-area: header;
+    }
+
+    h1 + form {
+      grid-area: pay;
+    }
   }
 </style>

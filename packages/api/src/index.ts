@@ -4,7 +4,8 @@ import { Prisma } from '@prisma/client';
 import { createFetch } from '@whatwg-node/fetch';
 import cors from 'cors';
 import { useNoBatchedQueries } from 'envelop-no-batched-queries';
-import express from 'express';
+import express, { type Request, type Response } from 'express';
+import multer from 'multer';
 import { GraphQLError } from 'graphql';
 import { createYoga } from 'graphql-yoga';
 import helmet from 'helmet';
@@ -125,7 +126,7 @@ api.use('/dump', async (req, res) => {
   }
 });
 api.get('/log', (req, res) => {
-  console.log(req.query['message'] ?? '<empty>');
+  console.info(req.query['message'] ?? '<empty>');
   res.send('ok');
 });
 
@@ -148,7 +149,7 @@ api.get('/', (_req, res) => {
 </html>`);
 });
 api.listen(4000, () => {
-  console.log('API ready at http://localhost:4000');
+  console.info('API ready at http://localhost:4000');
 });
 
 await writeSchema();
@@ -156,10 +157,10 @@ await writeSchema();
 import { lydiaSignature } from './services/lydia.js';
 
 const webhook = express();
-webhook.use(express.urlencoded({ extended: true }));
+const upload: multer.Multer = multer();
 
 // Lydia webhook
-webhook.post('/lydia-webhook', async (req, res) => {
+webhook.post('/lydia-webhook', upload.none(), async (req: Request, res: Response) => {
   // Retrieve the params from the request
   const {
     request_id,
@@ -244,5 +245,5 @@ webhook.post('/lydia-webhook', async (req, res) => {
 });
 
 webhook.listen(4001, () => {
-  console.log('Webhook ready at http://localhost:4001');
+  console.info('Webhook ready at http://localhost:4001');
 });

@@ -11,7 +11,7 @@
   export const LEGENDS = {
     Group: 'Logo du groupe',
     User: 'Photo de profil',
-    Article: 'Photo de l’article',
+    Article: 'Photo du post',
     Event: 'Photo de l’événement',
   };
 
@@ -35,9 +35,8 @@
         {
           [`update${objectName}Picture`]: [
             {
-              ...(['Group', 'User'].includes(objectName)
-                ? { uid, ...(objectName === 'Group' ? { dark } : {}) }
-                : { id }),
+              ...(['Group', 'User'].includes(objectName) ? { uid } : { id }),
+              ...(objectName === 'Group' ? { dark } : {}),
               file: Zvar('file', 'File!'),
             },
             true,
@@ -60,7 +59,10 @@
       deleting = true;
       const deleted = await $zeus.mutate({
         [`delete${objectName}Picture`]: [
-          { uid, ...(objectName === 'Group' ? { dark } : {}) },
+          {
+            ...(['Group', 'User'].includes(objectName) ? { uid } : { id }),
+            ...(objectName === 'Group' ? { dark } : {}),
+          },
           true,
         ],
       });
@@ -90,6 +92,7 @@
           accept="image/jpeg,image/png"
         />
         <ButtonSecondary
+          loading={updating}
           on:click={() => {
             inputElement.click();
           }}

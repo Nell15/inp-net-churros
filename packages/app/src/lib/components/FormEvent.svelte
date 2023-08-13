@@ -4,7 +4,7 @@
   import InputField from './InputField.svelte';
   import DateInput from './InputDate.svelte';
   import IconClose from '~icons/mdi/close';
-  import { type PaymentMethod, type Visibility, zeus } from '$lib/zeus';
+  import { type PaymentMethod, Visibility, zeus } from '$lib/zeus';
   import { goto } from '$app/navigation';
   import Alert from './Alert.svelte';
   import {
@@ -30,17 +30,14 @@
   const dispatch = createEventDispatcher();
 
   let serverError = '';
+  let loading = false;
+  let confirmingDelete = false;
 
   $: canEditManagers =
     !event.uid ||
     $me?.managedEvents?.find(
       (manager) => manager.event.uid === event.uid && manager.event.group.uid === event.group.uid
     )?.canEditPermissions;
-
-  $: console.log({
-    $me: $me?.managedEvents?.find((m) => m.event.uid === event.uid),
-    event: event.managers.find((m) => m.user.uid === $me?.uid),
-  });
 
   function eraseFakeIds(id: string): string {
     if (id.includes(':fake:')) return '';
@@ -53,6 +50,7 @@
   }
 
   async function saveChanges() {
+    loading = true;
     const { upsertEvent } = await $zeus.mutate({
       upsertEvent: [
         {
@@ -71,6 +69,7 @@
               id: eraseFakeIds(t.id),
               openToGroups: t.openToGroups.map(({ uid }) => uid),
               openToSchools: t.openToSchools.map(({ uid }) => uid),
+              openToMajors: t.openToMajors.map(({ id }) => id),
             })),
           })),
           tickets: event.tickets.map((t) => ({
@@ -78,6 +77,7 @@
             id: eraseFakeIds(t.id),
             openToGroups: t.openToGroups.map(({ uid }) => uid),
             openToSchools: t.openToSchools.map(({ uid }) => uid),
+            openToMajors: t.openToMajors.map(({ id }) => id),
           })),
           title: event.title,
           visibility: event.visibility,
@@ -86,7 +86,7 @@
             userUid: user.uid,
           })),
           id: event.id,
-          lydiaAccountId: event.lydiaAccount?.id,
+          lydiaAccountId: event.beneficiary?.id,
         },
         {
           __typename: true,
@@ -107,7 +107,10 @@
               location: true,
               visibility: true,
               contactMail: true,
-              lydiaAccountId: true,
+              beneficiary: {
+                id: true,
+                name: true,
+              },
               ticketGroups: {
                 name: true,
                 capacity: true,
@@ -168,9 +171,11 @@
 
     if (upsertEvent?.__typename === 'Error') {
       serverError = upsertEvent.message;
+      loading = false;
       return;
     }
 
+    loading = false;
     serverError = '';
 
     dispatch('save');
@@ -210,6 +215,7 @@
     openToNonAEContributors: null,
     openToPromotions: [],
     openToSchools: [],
+    openToMajors: [],
     id,
   });
 
@@ -228,13 +234,14 @@
     openToAlumni?: boolean | null | undefined;
     openToSchools: Array<{ name: string; color: string; uid: string }>;
     openToGroups: Array<{ name: string; uid: string; pictureFile: string }>;
+    openToMajors: Array<{ name: string; shortName: string; id: string }>;
     openToNonAEContributors?: boolean | null | undefined;
     godsonLimit: number;
     onlyManagersCanProvide: boolean;
   };
 
   export let redirectAfterSave: (uid: string, groupUid: string) => string = (uid, groupUid) =>
-    `/club/${groupUid}/event/${uid}/edit`;
+    `/events/${groupUid}/${uid}/edit`;
 
   export let availableLydiaAccounts: Array<{
     name: string;
@@ -252,7 +259,7 @@
       tickets: Ticket[];
     }>;
     contactMail: string;
-    lydiaAccount?: undefined | { name: string; id: string };
+    beneficiary?: undefined | { name: string; id: string };
     description: string;
     endsAt?: Date | undefined;
     links: Array<{ name: string; value: string }>;
@@ -331,12 +338,11 @@
     <InputField label="Compte Lydia bénéficiaire">
       <InputSearchObject
         clearable
-        bind:object={event.lydiaAccount}
+        bind:object={event.beneficiary}
         on:clear={() => {
-          event.lydiaAccount = undefined;
-          console.log('cleared');
+          event.beneficiary = undefined;
         }}
-        value={event.lydiaAccount?.id}
+        value={event.beneficiary?.id}
         labelKey="name"
         valueKey="id"
         search={(query) =>
@@ -436,17 +442,19 @@
       {/each}
     </section>
 
-    {#each event.tickets as ticket, i (ticket.id)}
-      {#if !ticketIsInGroup(ticket)}
-        <FormEventTicket
-          on:delete={() => {
-            event.tickets = event.tickets.filter(({ id }) => id !== ticket.id);
-          }}
-          bind:expandedTicketId
-          bind:ticket
-        />
-      {/if}
-    {/each}
+    <section class="simple-tickets">
+      {#each event.tickets as ticket, i (ticket.id)}
+        {#if !ticketIsInGroup(ticket)}
+          <FormEventTicket
+            on:delete={() => {
+              event.tickets = event.tickets.filter(({ id }) => id !== ticket.id);
+            }}
+            bind:expandedTicketId
+            bind:ticket
+          />
+        {/if}
+      {/each}
+    </section>
   </div>
   <div class="center">
     <h2>
@@ -502,7 +510,7 @@
             >
           {:else}
             <AvatarPerson
-              href="/user/{manager.user.uid}"
+              href="/users/{manager.user.uid}"
               {...manager.user}
               role={DISPLAY_MANAGER_PERMISSION_LEVELS[levelFromPermissions(manager)]}
             />
@@ -515,7 +523,41 @@
     {/if}
 
     <section class="submit">
-      <ButtonPrimary submits>Enregistrer</ButtonPrimary>
+      {#if confirmingDelete}
+        <h2>Es-tu sûr·e ?</h2>
+        <ButtonSecondary
+          on:click={() => {
+            confirmingDelete = false;
+          }}>Annuler</ButtonSecondary
+        >
+        <ButtonSecondary
+          on:click={async () => {
+            await $zeus.mutate({
+              deleteEventPicture: [{ id: event.id }, true],
+              deleteEvent: [{ id: event.id }, true],
+            });
+            confirmingDelete = false;
+            await goto('/week/');
+          }}
+          danger>Oui</ButtonSecondary
+        >
+        <ButtonSecondary
+          on:click={() => {
+            event.visibility = Visibility.Private;
+            confirmingDelete = false;
+          }}>Rendre privé</ButtonSecondary
+        >
+      {:else}
+        <ButtonPrimary submits {loading}>Enregistrer</ButtonPrimary>
+        {#if event.id}
+          <ButtonSecondary
+            danger
+            on:click={() => {
+              confirmingDelete = true;
+            }}>Supprimer</ButtonSecondary
+          >
+        {/if}
+      {/if}
     </section>
   </div>
 </form>
@@ -549,13 +591,16 @@
 
   .side-by-side {
     display: flex;
-    gap: 1rem;
+    flex-wrap: wrap;
+    column-gap: 1rem;
   }
 
-  .ticket-group .tickets {
+  .ticket-group .tickets,
+  .simple-tickets {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    align-items: center;
     margin: 1rem 0;
   }
 
@@ -592,6 +637,8 @@
 
   .submit {
     display: flex;
+    gap: 1rem;
+    align-items: center;
     justify-content: center;
     margin-top: 2rem;
   }

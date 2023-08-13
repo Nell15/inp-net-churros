@@ -12,7 +12,7 @@
   }>;
 
   const nbGroups = groups.length;
-  export let go: (groupUid: string) => string = (uid) => `/club/${uid}`;
+  export let go: (groupUid: string) => string = (uid) => `/groups/${uid}`;
 
   let groupsWidth = 0;
   let nbVisibles = 0;
@@ -84,10 +84,6 @@
     distance = 0;
   }
 
-  function handleScroll(e: Event) {
-    console.log(e);
-  }
-
   $: horizontalTranslation = slideNeeded
     ? Math.max(
         -(nbGroups - nbVisibles) * groupsWidth,
@@ -104,7 +100,6 @@
     ;transform: translateX({horizontalTranslation}px);"
     on:mousedown={handleMouseDown}
     on:touchstart={handleTouchDown}
-    on:scroll={handleScroll}
   >
     {#each groups as { uid, ...rest }}
       <CardGroup on:click={handleClick} href={go(uid)} {...rest} />
@@ -129,6 +124,7 @@
   .slider-container {
     position: relative;
     overflow: hidden;
+    touch-action: none;
   }
 
   .slider {
@@ -163,5 +159,20 @@
 
   .arrow.left {
     left: 0.5em;
+  }
+
+  @media only screen and (max-width: 600px) {
+    .arrow {
+      width: 2em;
+      height: 2em;
+    }
+
+    .arrow.right {
+      right: 1em;
+    }
+
+    .arrow.left {
+      left: 1em;
+    }
   }
 </style>

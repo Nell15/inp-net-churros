@@ -43,6 +43,7 @@ import { GraphQLError, Kind } from 'graphql';
     notifsub: 'NotificationSubscription',
     notif: 'Notification',
     notifsetting: 'NotificationSetting',
+    ann: 'Announcement',
   };
 /* end @generated from schema */
 
@@ -70,7 +71,7 @@ export const builder = new SchemaBuilder<{
     ValidationPlugin,
   ],
   authScopes,
-  complexity: { limit: { complexity: 11_000, depth: 7, breadth: 100 } },
+  complexity: { limit: { complexity: 15_000, depth: 7, breadth: 100 } },
   defaultInputFieldRequiredness: true,
   errorOptions: { defaultTypes: [Error] },
   prisma: { client: prisma, exposeDescriptions: true },
@@ -92,7 +93,7 @@ export const builder = new SchemaBuilder<{
     default: (config) => isRootField(config),
     wrap: (resolver, _options, config) =>
       wrapResolver(resolver, (_error, duration) => {
-        console.log(
+        console.info(
           `Executed \u001B[36;1m${config.parentType}.${
             config.name
           }\u001B[0m in \u001B[36;1m${Number(duration.toPrecision(3))} ms\u001B[0m`

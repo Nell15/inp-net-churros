@@ -41,6 +41,35 @@
     snapchat: IconSnapchat,
   };
 
+  function urlToUsername({
+    value: url,
+    name,
+  }: {
+    value: string;
+    name: typeof names[number];
+  }): string {
+    if (!url) return '';
+    switch (name) {
+      case 'facebook':
+      case 'instagram':
+      case 'twitter': {
+        try {
+          return decodeURIComponent(new URL(url).pathname.slice(1));
+        } catch {
+          return '';
+        }
+      }
+
+      case 'linkedin': {
+        return decodeURIComponent(new URL(url).pathname[1]) /* [0] is /in/ */;
+      }
+
+      default: {
+        return url;
+      }
+    }
+  }
+
   function usernameToURL({
     value: username,
     name,
@@ -101,7 +130,16 @@
         <BaseInputText
           {required}
           type="text"
-          bind:value={value[index(name)].value}
+          value={urlToUsername(value[index(name)])}
+          on:input={({ detail }) => {
+            value[index(name)] = {
+              ...value[index(name)],
+              value: usernameToURL({
+                name,
+                value: detail.target?.value,
+              }),
+            };
+          }}
           placeholder="@moi"
         >
           <svelte:element
@@ -118,13 +156,13 @@
 
 <style lang="scss">
   ul {
-    list-style: none;
-    padding-left: 0;
     display: flex;
     flex-flow: column wrap;
-    border-radius: var(--radius-block);
-    border: var(--border-block) solid var(--border);
+    padding-left: 0;
     overflow: hidden;
+    list-style: none;
+    border: var(--border-block) solid var(--border);
+    border-radius: var(--radius-block);
   }
 
   ul > li:not(:last-child) {
@@ -132,7 +170,7 @@
   }
 
   ul > li > :global(.base-input) {
-    border-radius: 0;
     border: none;
+    border-radius: 0;
   }
 </style>
