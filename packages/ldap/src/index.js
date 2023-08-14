@@ -4,6 +4,7 @@ import { PrismaClient } from '../../../node_modules/@prisma/client';
 import argon2 from 'argon2';
 import dotenv from 'dotenv';
 import { parseDNToList, findByKey, scope, printList } from './utils';
+import { subschema, subSchemaB64 } from './subschema';
 
 // Load .env file
 dotenv.config();
@@ -45,9 +46,9 @@ const createRootDSE = () => {
   return {
     configContext: 'cn=config',
     namingContexts: [rootDn],
-    objectclass: ['top', 'OpenLDAProotDSE'],
+    objectClass: ['top', 'OpenLDAProotDSE'],
     structuralObjectClass: 'OpenLDAProotDSE',
-    subschemaSubentry: 'cn=Subschema',
+    SubschemaSubentry: 'cn=Subschema',
     supportedControl: SUPPORTED_CONTROLS,
     supportedExtension: SUPPORTED_EXTENSIONS,
     supportedFeatures: SUPPORTED_FEATURES,
@@ -133,7 +134,7 @@ server.search('', async (req, res, next) => {
     if (
       req.scope === 'base' &&
       req.filter instanceof ldap.PresenceFilter &&
-      req.filter.attribute === 'objectclass'
+      req.filter.attribute === 'objectClass'
     ) {
       res.send({
         dn: rootDn,
@@ -152,15 +153,27 @@ server.search('', async (req, res, next) => {
 
 // Subschema
 server.search('cn=Subschema', async (req, res, next) => {
-  console.log('cn=Subschema');
+  console.log('DN: ' + req.dn.toString());
+  console.log('Filter: ' + req.filter.toString());
+  console.log('Attributes: ' + req.attributes.toString());
+  console.log('Scope: ' + req.scope);
+
   try {
+    if (req.attributes.includes('objectClasses')) {
     res.send({
       dn: 'cn=Subschema',
       attributes: {
-        objectclass: ['top', 'subentry', 'subschema'],
-        cn: 'Subschema',
+        objectClasses: subschema,
       },
     });
+    } else {
+      res.send({
+        dn: 'cn=Subschema',
+        attributes: {
+          objectClass: ['top', 'subentry', 'subschema', 'extensibleObject'],
+        },
+      });
+    }
     res.end();
     return next();
   } catch (error) {
@@ -189,7 +202,7 @@ server.search(rootDn, async (req, res, next) => {
           res.send({
             dn: 'dc=etu-inpt,dc=fr',
             attributes: {
-              objectclass: ['top', 'dcObject', 'organization'],
+              objectClass: ['top', 'dcObject', 'organization'],
               o: 'inp-net',
               dc: 'etu-inpt',
             },
@@ -204,7 +217,7 @@ server.search(rootDn, async (req, res, next) => {
               dn: `o=${schoolLdap.o},${rootDn}`,
               attributes: {
                 displayName: schoolLdap.school.name,
-                objectclass: schoolLdap.ObjectClass.map((object) => object.attribute),
+                objectClass: schoolLdap.ObjectClass.map((object) => object.attribute),
                 o: schoolLdap.o,
               },
             });
@@ -233,7 +246,7 @@ server.search(rootDn, async (req, res, next) => {
             attributes: {
               displayName: schoolLdap.school.name,
               o: schoolLdap.o,
-              objectclass: schoolLdap.ObjectClass.map((object) => object.attribute),
+              objectClass: schoolLdap.ObjectClass.map((object) => object.attribute),
             },
           });
         }
@@ -241,7 +254,7 @@ server.search(rootDn, async (req, res, next) => {
           res.send({
             dn: `ou=people,o=${schoolLdap.o},dc=etu-inpt,dc=fr`,
             attributes: {
-              objectclass: ['organizationalUnit'],
+              objectClass: ['organizationalUnit'],
               ou: 'people',
             },
             }
@@ -249,28 +262,28 @@ server.search(rootDn, async (req, res, next) => {
           res.send({
             dn: `ou=groups,o=${schoolLdap.o},dc=etu-inpt,dc=fr`,
             attributes: {
-              objectclass: ['organizationalUnit'],
+              objectClass: ['organizationalUnit'],
               ou: 'groups',
             },
           });
           res.send({
             dn: `ou=filieres,o=${schoolLdap.o},dc=etu-inpt,dc=fr`,
             attributes: {
-              objectclass: ['organizationalUnit'],
+              objectClass: ['organizationalUnit'],
               ou: 'filieres',
             },
           });
           res.send({
             dn: `ou=admin,o=${schoolLdap.o},dc=etu-inpt,dc=fr`,
             attributes: {
-              objectclass: ['organizationalUnit'],
+              objectClass: ['organizationalUnit'],
               ou: 'admin',
             },
           });
           res.send({
             dn: `ou=aliases,o=${schoolLdap.o},dc=etu-inpt,dc=fr`,
             attributes: {
-              objectclass: ['organizationalUnit'],
+              objectClass: ['organizationalUnit'],
               ou: 'aliases',
             },
           });
@@ -298,7 +311,7 @@ server.search(rootDn, async (req, res, next) => {
                 res.send({
                   dn: `ou=people,o=${schoolLdap.o},dc=etu-inpt,dc=fr`,
                   attributes: {
-                    objectclass: ['organizationalUnit'],
+                    objectClass: ['organizationalUnit'],
                     ou: 'people',
                   },
                 });
@@ -337,7 +350,7 @@ server.search(rootDn, async (req, res, next) => {
                     homeDirectory: userLdap.homeDirectory,
                     loginShell: userLdap.loginShell,
                     mailEcole: userLdap.user.schoolEmail,
-                    objectclass: userLdap.ObjectClass.map((object) => object.attribute),
+                    objectClass: userLdap.ObjectClass.map((object) => object.attribute),
                     sn: userLdap.user.lastName,
                     snSearch: userLdap.user.lastName.toLocaleLowerCase(),
                     uidNumber: userLdap.uidNumber,
@@ -363,14 +376,14 @@ server.search(rootDn, async (req, res, next) => {
             
             if (
               req.filter instanceof ldap.PresenceFilter &&
-              req.filter.attribute === 'objectclass' &&
+              req.filter.attribute === 'objectClass' &&
               req.scope === 'base' || req.scope === 'sub'
             ) {
               for (let schoolLdap of schoolsLdap.values()) {
                 res.send({
                   dn: `ou=groups,o=${schoolLdap.o},dc=etu-inpt,dc=fr`,
                   attributes: {
-                    objectclass: ['organizationalUnit'],
+                    objectClass: ['organizationalUnit'],
                     ou: 'groups',
                   },
                 });
@@ -382,14 +395,14 @@ server.search(rootDn, async (req, res, next) => {
                   dn: `ou=clubs,ou=groups,o=${schoolLdap.o},dc=etu-inpt,dc=fr`,
                   attributes: {
                     ou: 'clubs',
-                    objectclass: ['organizationalUnit'],
+                    objectClass: ['organizationalUnit'],
                   },
                 });
                 res.send({
                   dn: `ou=grp-informels,ou=groups,o=${schoolLdap.o},dc=etu-inpt,dc=fr`,
                   attributes: {
                     ou: 'grp-informels',
-                    objectclass: ['organizationalUnit'],
+                    objectClass: ['organizationalUnit'],
                   },
                 });
               }
@@ -430,7 +443,7 @@ server.search(rootDn, async (req, res, next) => {
                 dn: `ou=clubs,ou=groups,o=${schoolLdap.o},dc=etu-inpt,dc=fr`,
                 attributes: {
                   ou: 'clubs',
-                  objectclass: ['organizationalUnit'],
+                  objectClass: ['organizationalUnit'],
                   hasSubordinates: true,
                 },
               });
@@ -471,7 +484,7 @@ server.search(rootDn, async (req, res, next) => {
                   gidNumber: clubLdap.gidNumber,
                   hasWebsite: clubLdap.hasWebsite,
                   memberUid: clubLdap.group.members.map((member) => member.member.userLdap.uid),
-                  objectclass: clubLdap.ObjectClass.map((object) => object.attribute),
+                  objectClass: clubLdap.ObjectClass.map((object) => object.attribute),
                   hasSubordinates: false,
                 },
               });
@@ -488,7 +501,7 @@ server.search(rootDn, async (req, res, next) => {
                 dn: `ou=grp-informels,ou=groups,o=${schoolLdap.o},dc=etu-inpt,dc=fr`,
                 attributes: {
                   ou: 'grp-informels',
-                  objectclass: ['organizationalUnit'],
+                  objectClass: ['organizationalUnit'],
                   hasSubordinates: true,
                 },
               });
@@ -539,7 +552,7 @@ server.search(rootDn, async (req, res, next) => {
                   gidNumber: clubLdap.gidNumber,
                   hasWebsite: clubLdap.hasWebsite,
                   memberUid: clubLdap.group.members.map((member) => member.member.userLdap.uid),
-                  objectclass: clubLdap.ObjectClass.map((object) => object.attribute),
+                  objectClass: clubLdap.ObjectClass.map((object) => object.attribute),
                   hasSubordinates: false,
                 },
               });
@@ -592,7 +605,7 @@ server.search(rootDn, async (req, res, next) => {
                 gidNumber: groupLdap.gidNumber,
                 hasWebsite: groupLdap.hasWebsite,
                 memberUid: groupLdap.group.members.map((member) => member.member.userLdap.uid),
-                objectclass: groupLdap.ObjectClass.map((object) => object.attribute),
+                objectClass: groupLdap.ObjectClass.map((object) => object.attribute),
                 hasSubordinates: false,
               },
             });
@@ -661,7 +674,7 @@ server.search(rootDn, async (req, res, next) => {
               homeDirectory: userLdap.homeDirectory,
               loginShell: userLdap.loginShell,
               mailEcole: userLdap.user.schoolEmail,
-              objectclass: userLdap.ObjectClass.map((object) => object.attribute),
+              objectClass: userLdap.ObjectClass.map((object) => object.attribute),
               sn: userLdap.user.lastName,
               snSearch: userLdap.user.lastName.toLocaleLowerCase(),
               uidNumber: userLdap.uidNumber,
