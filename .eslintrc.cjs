@@ -48,6 +48,7 @@ module.exports = {
     'unicorn/no-document-cookie': 'off',
     'unicorn/prevent-abbreviations': 'off',
     'unicorn/prefer-top-level-await': 'off',
+    'unicorn/expiring-todo-comments': 'off',
     curly: ['error', 'multi-or-nest', 'consistent'],
   },
   overrides: [
