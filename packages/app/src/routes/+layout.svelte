@@ -13,6 +13,8 @@
   import { afterNavigate, beforeNavigate } from '$app/navigation';
   import { me } from '$lib/session';
 
+  export const trailingSlash = 'always';
+
   function currentTab(url: URL): 'events' | 'search' | 'more' | 'home' {
     const starts = (segment: string) => url.pathname.startsWith(segment);
 
