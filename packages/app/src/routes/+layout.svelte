@@ -13,8 +13,6 @@
   import { afterNavigate, beforeNavigate } from '$app/navigation';
   import { me } from '$lib/session';
 
-  export const trailingSlash = 'always';
-
   function currentTab(url: URL): 'events' | 'search' | 'more' | 'home' {
     const starts = (segment: string) => url.pathname.startsWith(segment);
 
@@ -128,6 +126,7 @@
             <div class="text">
               <strong>{title}</strong>
               <div class="body">
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                 {@html bodyHtml}
               </div>
             </div>
