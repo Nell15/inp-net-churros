@@ -27,7 +27,6 @@ function findByKey(list, key) {
   return matchingItems.length > 0 ? matchingItems : null;
 }
 
-
 function printList(list) {
   for (const item of list) {
     console.log(`${item.key}=${item.value}`);
@@ -42,19 +41,19 @@ function scope(list) {
     secondKind: findByKey(list, 'ou') ? findByKey(list, 'ou')[1] : null,
     person: findByKey(list, 'uid') ? findByKey(list, 'uid')[0] : null,
     group: findByKey(list, 'cn') ? findByKey(list, 'cn')[0] : null,
-  }
+  };
   if (scope.person) {
-    return { ...scope, type: 'person' }
+    return { ...scope, type: 'person' };
   } else if (scope.group) {
-    return { ...scope, type: 'group' }
+    return { ...scope, type: 'group' };
   } else if (scope.secondKind) {
-    return { ...scope, type: 'secondKind' }
+    return { ...scope, type: 'secondKind' };
   } else if (scope.kind) {
-    return { ...scope, type: 'kind' }
+    return { ...scope, type: 'kind' };
   } else if (scope.school) {
-    return { ...scope, type: 'school' }
+    return { ...scope, type: 'school' };
   }
-  return { ...scope, type: 'rootDN' }
-};
+  return { ...scope, type: 'rootDN' };
+}
 
 export { parseDNToList, findByKey, scope, printList };

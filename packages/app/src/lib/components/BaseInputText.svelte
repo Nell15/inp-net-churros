@@ -13,7 +13,7 @@
   export let unit = '';
   export let placeholder = '';
   export let validate: (value: string) => string = () => '';
-  export let actionIcon: typeof SvelteComponent | undefined = undefined;
+  export let actionIcon: typeof SvelteComponent<any> | undefined = undefined;
   export let required = false;
   export let readonly = false;
   export let closeKeyboardOnEnter = false;
@@ -28,6 +28,7 @@
 
       case 'datetime-local':
       case 'datetime': {
+        if (typeof val === 'string') return val;
         return format(val as Date, "yyyy-MM-dd'T'HH:mm");
       }
 
@@ -116,7 +117,9 @@
         if (!(e.target instanceof HTMLInputElement)) return;
         if (e.key === 'Enter' && closeKeyboardOnEnter) e.target.blur();
       }}
-      {type}
+      type={type === 'number' ? 'text' : type}
+      inputmode={type === 'number' ? 'numeric' : undefined}
+      pattern={type === 'number' ? '[0-9.,]*' : undefined}
       {name}
       value={stringifyValue(value, type)}
       {required}

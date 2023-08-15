@@ -149,7 +149,6 @@ for (const [i, name] of ['AE EAU 2022', 'AE FEU 2022', 'AE TERRE 2022', 'AE AIR 
     data: {
       name,
       school: { connect: { id: schools[i]!.id } },
-      year: 2022,
       links: { create: [] },
     },
   });
@@ -251,6 +250,14 @@ for (const [i, data] of usersData.entries()) {
           { name: 'Twitter', value: '#' },
         ],
       },
+      contributesTo:
+        i % 2 === 0
+          ? {
+              connect: {
+                id: randomIdOf(studentAssociations),
+              },
+            }
+          : undefined,
       phone: '+33612345678',
       address: '2 rue Charles Camichel, 31000 Toulouse',
       birthday: new Date(Date.UTC(2000, (i * 37) % 12, (i * 55) % 28)),
@@ -609,7 +616,7 @@ const event1 = await prisma.event.create({
             openToPromotions: [2024, 2025, 2026],
             openToAlumni: false,
             openToExternal: false,
-            openToNonAEContributors: false,
+            openToContributors: false,
             godsonLimit: 0,
             onlyManagersCanProvide: false,
           },
@@ -679,7 +686,7 @@ await prisma.event.create({
             openToAlumni: null,
             openToExternal: false,
             // eslint-disable-next-line unicorn/no-null
-            openToNonAEContributors: null,
+            openToContributors: null,
             openToPromotions: [],
           },
         ],

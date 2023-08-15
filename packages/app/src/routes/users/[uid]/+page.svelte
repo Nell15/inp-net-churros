@@ -24,7 +24,7 @@
   import ButtonShare from '$lib/components/ButtonShare.svelte';
   import { goto } from '$app/navigation';
 
-  const NAME_TO_ICON: Record<string, typeof SvelteComponent> = {
+  const NAME_TO_ICON: Record<string, typeof SvelteComponent<any>> = {
     facebook: IconFacebook,
     instagram: IconInstagram,
     twitter: IconTwitter,
@@ -38,7 +38,7 @@
 
   type Nesting = [string, Nesting[]];
   $: familyNesting = JSON.parse(data.user.familyTree.nesting) as Nesting;
-  type UserTree = typeof data.user.familyTree.users[number] & { children: UserTree[] };
+  type UserTree = (typeof data.user.familyTree.users)[number] & { children: UserTree[] };
   function makeFamilyTree(nesting: Nesting): UserTree {
     const findUser = (uid: string) => data.user.familyTree.users.find((u) => u.uid === uid);
 
@@ -57,6 +57,7 @@
 
   async function logout() {
     const cookies = cookie.parse(document.cookie);
+    window.localStorage.setItem('isReallyLoggedout', 'true');
     await goto(`/logout/?token=${cookies.token}`);
   }
 
@@ -141,6 +142,19 @@
           {#if user.nickname}
             <dt>Surnom</dt>
             <dd>{user.nickname}</dd>
+          {/if}
+          {#if user.contributesTo}
+            <dt>Cotisant·e</dt>
+            {#if user.contributesTo.length > 0}
+              <dd>
+                {user.contributesTo
+                  .filter((c) => c !== undefined)
+                  .map((c) => c?.name)
+                  .join(', ')}
+              </dd>
+            {:else}
+              <dd>Non</dd>
+            {/if}
           {/if}
           <dt>Email</dt>
           <dd>

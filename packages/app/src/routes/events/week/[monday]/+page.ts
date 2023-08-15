@@ -13,6 +13,7 @@ export const load: PageLoad = async ({ fetch, parent, params }) => {
         eventsInWeek: [
           { today: shownWeek.toISOString() },
           Selector('Event')({
+            id: true,
             startsAt: true,
             endsAt: true,
             title: true,
@@ -20,8 +21,20 @@ export const load: PageLoad = async ({ fetch, parent, params }) => {
             descriptionHtml: true,
             group: {
               uid: true,
+              name: true,
+              pictureFile: true,
+              pictureFileDark: true,
             },
             uid: true,
+            tickets: {
+              name: true,
+              opensAt: true,
+              closesAt: true,
+              price: true,
+              placesLeft: true,
+              capacity: true,
+              uid: true,
+            },
           }),
         ],
         barWeekNow: [
@@ -31,6 +44,7 @@ export const load: PageLoad = async ({ fetch, parent, params }) => {
             groups: {
               uid: true,
               pictureFile: true,
+              pictureFileDark: true,
               name: true,
             },
           },
