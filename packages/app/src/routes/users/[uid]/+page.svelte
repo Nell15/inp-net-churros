@@ -262,15 +262,21 @@
           >
         {:else if (user.contributesTo?.length ?? 0) <= 0}
           <InputText type="tel" label="Numéro de téléphone" bind:value={contributePhone} />
-          <ButtonSecondary loading={contributeLoading} on:click={contribute}
-            >Cotiser pour {user.major.schools[0].studentAssociations[0].name}
-            <strong class="price"
-              >{Intl.NumberFormat('fr-FR', {
-                style: 'currency',
-                currency: 'EUR',
-              }).format(user.major.schools[0].studentAssociations[0].contributionPrice)}</strong
-            >
-          </ButtonSecondary>
+          <ul class="nobullet contributions">
+            {#each user.major.schools.flatMap(s => s.studentAssociations) as studentAssociation }
+            <li>
+              <ButtonSecondary loading={contributeLoading} on:click={contribute}
+                >Cotiser pour {studentAssociation.name}
+                <strong class="price"
+                  >{Intl.NumberFormat('fr-FR', {
+                    style: 'currency',
+                    currency: 'EUR',
+                  }).format(studentAssociation.contributionPrice)}</strong
+                >
+              </ButtonSecondary>
+            </li>
+            {/each}
+          </ul>
         {/if}
         {#if contributeServerError}
           <Alert theme="danger">{contributeServerError}</Alert>
@@ -449,6 +455,12 @@
     display: flex;
     flex-flow: column wrap;
     align-items: center;
+  }
+
+  ul.contributions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
   .contribution > p {

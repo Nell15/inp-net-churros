@@ -56,7 +56,7 @@ builder.mutationField('contribute', (t) =>
     type: 'Boolean',
     errors: {},
     args: {
-      id: t.arg.id(),
+      modelId: t.arg.id(),
       phone: t.arg.string(),
     },
     authScopes(_, {}, { user }) {
@@ -74,20 +74,15 @@ builder.mutationField('contribute', (t) =>
       const lydiaAccount = studentAssociation.lydiaAccounts[0];
       if (!lydiaAccount) throw new GraphQLError("Cette AE n'a pas de compte Lydia");
 
-      await prisma.contribution.upsert({
-        where: {
-          userId_studentAssociationId: { userId: user.id, studentAssociationId: id },
-        },
-        create: {
+      await prisma.contribution.create({
+        data: {
           studentAssociation: {
-            connect: { id },
-          },
+            connect: [{ id }, { name: "INP Toulouse" }]          },
           paid: false,
           user: {
             connect: { id: user.id },
           },
         },
-        update: {},
       });
 
       await sendLydiaPaymentRequest(

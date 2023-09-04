@@ -438,8 +438,12 @@ builder.mutationField('updateUser', (t) =>
       if (changingContributesTo && contributesTo && (user.canEditUsers || user.admin)) {
         await prisma.contribution.deleteMany({
           where: {
-            studentAssociationId: {
-              notIn: contributesTo,
+            studentAssociation: {
+              every: {
+                id: {
+                  notIn: contributesTo,
+                }
+              }
             },
           },
         });
