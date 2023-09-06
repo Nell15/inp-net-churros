@@ -43,6 +43,7 @@
     onlyManagersCanProvide,
     name,
     event: { contactMail, title, pictureFile, startsAt },
+    links,
     price,
   } = data.ticketByUid;
 
@@ -165,6 +166,19 @@
         </p>
       {/if}
       {#await redirectIfPaid() then}
+        {#if links.length > 0}
+          <section class="links">
+            <p>En attendant:</p>
+            <ul class="links nobullet">
+              {#each links as link}
+                <li>
+                  <ButtonSecondary href={link.computedValue}>{link.name}</ButtonSecondary>
+                </li>
+              {/each}
+            </ul>
+          </section>
+        {/if}
+
         {#if registration?.paymentMethod === PaymentMethod.Lydia}
           <p>Rends-toi sur ton application Lydia pour régler le paiement.</p>
           <ButtonPrimary href="/bookings/{$page.url.searchParams.get('done')}"
@@ -203,7 +217,7 @@
       <h2>
         {#if paying}Paiement par Lydia{:else}Mode de paiement{/if}
       </h2>
-      <p>Ta place n'est pas réservée tant que le paiement n'est pas terminé.</p>
+      <!-- <p>Ta place n'est pas réservée tant que le paiement n'est pas terminé.</p> -->
 
       {#if !paying}
         <ul class="nobullet payment-methods">

@@ -1,6 +1,7 @@
 <script lang="ts">
   import IconAdd from '~icons/mdi/add';
   import IconCar from '~icons/mdi/car';
+  import IconDefisInte from '~icons/mdi/sword-cross';
   import IconHand from '~icons/mdi/hand-heart';
   import Carrot from '~icons/mdi/carrot';
   import IconTerminal from '~icons/mdi/terminal';
@@ -31,23 +32,27 @@
   }
 
   const services = [
-    Service('La Frappe', 'Sauve tes partiels', {
-      logo: IconHand,
-      href: 'https://bde.enseeiht.fr/services/frappe/',
+    Service("Défis d'inté", "Valide tes défis d'inté", {
+      href: 'https://defis-inte.inpt.fr',
+      logo: IconDefisInte,
+    }),
+    Service('Ecobox', 'Commande ton ecobox', {
+      logo: Carrot,
+      href: 'https://lespaniersdelamiss.fr/',
     }),
     Service('Photos', 'Merci Photo7 ♥', { href: 'https://photo7.inpt.fr' }),
     Service('TVn7flix', 'Les productions de TVn7', { href: 'https://tvn7flix.fr' }),
     Service('IPQ', "Le podcast de l'n7", {
       href: 'https://open.spotify.com/show/77KtGDlbY7RH3BSTOsNGbA?si=48a2cbacee7440b3',
     }),
+    Service('La Frappe', 'Sauve tes partiels', {
+      logo: IconHand,
+      href: 'https://bde.enseeiht.fr/services/frappe/',
+    }),
     Service('Loca7', 'Trouve un appart', { href: 'https://loca7.fr' }),
     Service('Covoiturages', 'Limite ton CO2e', {
       logo: IconCar,
       href: 'https://bde.enseeiht.fr/services/covoiturage/',
-    }),
-    Service('Ecobox', 'Commande ton ecobox', {
-      logo: Carrot,
-      href: 'https://lespaniersdelamiss.fr/',
     }),
     // Service('Nextcloud', 'Fichiers, etc.', { href: 'https://cloud.inpt.fr', logo: IconCloud }),
   ];

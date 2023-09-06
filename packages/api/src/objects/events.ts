@@ -1,5 +1,5 @@
 import { builder } from '../builder.js';
-import { startOfWeek, endOfWeek } from 'date-fns';
+import { startOfWeek, endOfWeek, setMinutes } from 'date-fns';
 import { TicketType, createUid as createTicketUid, userCanSeeTicket } from './tickets.js';
 import {
   type Event as EventPrisma,
@@ -7,6 +7,9 @@ import {
   Visibility,
   type Event,
   type EventManager,
+  type Ticket,
+  type TicketGroup,
+  PaymentMethod,
 } from '@prisma/client';
 import { toHtml } from '../services/markdown.js';
 import { prisma } from '../prisma.js';
@@ -32,6 +35,7 @@ import { unlink } from 'node:fs/promises';
 import { scheduleShotgunNotifications } from '../services/notifications.js';
 import { updatePicture } from '../pictures.js';
 import { join } from 'node:path';
+import { setHours } from 'date-fns';
 
 export const VisibilityEnum = builder.enumType(VisibilityPrisma, {
   name: 'Visibility',
@@ -81,12 +85,14 @@ class RegistrationsCounts {
   total: number;
   paid: number;
   verified: number;
+  unpaidLydia: number;
   /* eslint-enable @typescript-eslint/parameter-properties */
 
-  constructor(total: number, paid: number, verified: number) {
+  constructor(total: number, paid: number, verified: number, unpaidLydia: number) {
     this.total = total;
     this.paid = paid;
     this.verified = verified;
+    this.unpaidLydia = unpaidLydia;
   }
 }
 
@@ -97,8 +103,34 @@ const RegistrationsCountsType = builder
       total: t.exposeInt('total'),
       paid: t.exposeInt('paid'),
       verified: t.exposeInt('verified'),
+      unpaidLydia: t.exposeInt('unpaidLydia'),
     }),
   });
+
+export function eventCapacity(
+  tickets: Array<Ticket & { group: TicketGroup | null }>,
+  ticketGroups: Array<TicketGroup & { tickets: Ticket[] }>
+) {
+  // Places left is capacity - number of registrations
+  // Capacity is the sum of
+  // - ticket's capacity, for tickets outside of groups
+  // - min(group capacity, sum of tickets' capacity)  for ticket groups
+  const ungroupedTickets = tickets.filter((t) => !t.group);
+  const handleUnlimited = (capacity: number) =>
+    capacity === -1 ? Number.POSITIVE_INFINITY : capacity;
+  return (
+    ungroupedTickets.reduce((acc, t) => acc + handleUnlimited(t.capacity), 0) +
+    ticketGroups.reduce(
+      (acc, tg) =>
+        acc +
+        Math.min(
+          handleUnlimited(tg.capacity),
+          tg.tickets.reduce((acc, t) => acc + handleUnlimited(t.capacity), 0)
+        ),
+      0
+    )
+  );
+}
 
 export const EventType = builder.prismaNode('Event', {
   id: { field: 'id' },
@@ -184,6 +216,46 @@ export const EventType = builder.prismaNode('Event', {
     links: t.relation('links'),
     author: t.relation('author', { nullable: true }),
     pictureFile: t.exposeString('pictureFile'),
+    capacity: t.int({
+      async resolve({ id }) {
+        const tickets = await prisma.ticket.findMany({
+          where: { event: { id } },
+          include: {
+            group: true,
+          },
+        });
+        const ticketGroups = await prisma.ticketGroup.findMany({
+          where: { event: { id } },
+          include: {
+            tickets: true,
+          },
+        });
+
+        return eventCapacity(tickets, ticketGroups);
+      },
+    }),
+    placesLeft: t.int({
+      async resolve({ id }) {
+        const registrations = await prisma.registration.findMany({
+          where: { ticket: { event: { id } } },
+        });
+
+        const tickets = await prisma.ticket.findMany({
+          where: { event: { id } },
+          include: {
+            group: true,
+          },
+        });
+        const ticketGroups = await prisma.ticketGroup.findMany({
+          where: { event: { id } },
+          include: {
+            tickets: true,
+          },
+        });
+
+        return eventCapacity(tickets, ticketGroups) - registrations.length;
+      },
+    }),
     registrationsCounts: t.field({
       type: RegistrationsCountsType,
       async resolve({ id }) {
@@ -194,6 +266,8 @@ export const EventType = builder.prismaNode('Event', {
           total: results.length,
           paid: results.filter((r) => r.paid).length,
           verified: results.filter((r) => r.verifiedAt).length,
+          unpaidLydia: results.filter((r) => !r.paid && r.paymentMethod === PaymentMethod.Lydia)
+            .length,
         };
       },
     }),
@@ -235,6 +309,7 @@ builder.queryField('events', (t) =>
             visibility: VisibilityPrisma.Public,
             startsAt: future ? { gte: new Date() } : undefined,
           },
+          orderBy: { startsAt: 'asc' },
         });
       }
 
@@ -244,7 +319,7 @@ builder.queryField('events', (t) =>
           startsAt: future ? { gte: new Date() } : undefined,
           ...visibleEventsPrismaQuery(user),
         },
-        orderBy: { startsAt: 'desc' },
+        orderBy: { startsAt: 'asc' },
       });
     },
   })
@@ -258,30 +333,29 @@ builder.queryField('eventsInWeek', (t) =>
     },
     async resolve(query, _, { today }, { user }) {
       // dateCondition is used to filter events that start in the week or end in the week
+      const dateCondition = {
+        gte: setMinutes(setHours(startOfWeek(today, { weekStartsOn: 1 }), 0), 0),
+        lte: setMinutes(setHours(endOfWeek(today, { weekStartsOn: 1 }), 23), 59),
+      };
 
       if (!user) {
         return prisma.event.findMany({
           ...query,
           where: {
-            startsAt: {
-              lte: endOfWeek(today),
-              gte: startOfWeek(today),
-            },
+            startsAt: dateCondition,
             visibility: VisibilityPrisma.Public,
           },
+          orderBy: { startsAt: 'asc' },
         });
       }
 
       return prisma.event.findMany({
         ...query,
         where: {
-          startsAt: {
-            lte: endOfWeek(today),
-            gte: startOfWeek(today),
-          },
+          startsAt: dateCondition,
           ...visibleEventsPrismaQuery(user),
         },
-        orderBy: { startsAt: 'desc' },
+        orderBy: { startsAt: 'asc' },
       });
     },
   })
@@ -350,7 +424,7 @@ builder.mutationField('upsertEvent', (t) =>
       ticketGroups: t.arg({ type: [TicketGroupInput] }),
       tickets: t.arg({ type: [TicketInput] }),
       description: t.arg.string(),
-      groupId: t.arg.string(),
+      groupUid: t.arg.string(),
       contactMail: t.arg.string(),
       links: t.arg({ type: [LinkInput] }),
       lydiaAccountId: t.arg.string({ required: false }),
@@ -361,20 +435,30 @@ builder.mutationField('upsertEvent', (t) =>
       endsAt: t.arg({ type: DateTimeScalar }),
       managers: t.arg({ type: [ManagerOfEventInput] }),
     },
-    authScopes(_, { id, groupId }, { user }) {
+    async authScopes(_, { id, groupUid }, { user }) {
       const creating = !id;
-      if (user?.admin) return true;
+      if (!user) return false;
+      if (user.admin) return true;
 
       if (creating) {
         return Boolean(
-          user?.canEditGroups ||
-            user?.groups.some(
-              ({ group, canEditArticles }) => canEditArticles && group.id === groupId
+          user.canEditGroups ||
+            user.groups.some(
+              ({ group, canEditArticles }) => canEditArticles && group.uid === groupUid
             )
         );
       }
 
-      return Boolean(user?.managedEvents.some(({ event, canEdit }) => event.id === id && canEdit));
+      const event = await prisma.event.findUnique({
+        where: { id },
+        include: { managers: { include: { user: true } } },
+      });
+
+      if (!event) return false;
+
+      return Boolean(
+        event.managers.some(({ user: { uid }, canEdit }) => uid === user.uid && canEdit)
+      );
     },
     async resolve(
       query,
@@ -388,7 +472,7 @@ builder.mutationField('upsertEvent', (t) =>
         endsAt,
         tickets,
         description,
-        groupId,
+        groupUid,
         contactMail,
         links,
         location,
@@ -425,18 +509,24 @@ builder.mutationField('upsertEvent', (t) =>
         });
       }
 
+      const group = await prisma.group.findUniqueOrThrow({
+        where: { uid: groupUid },
+      });
+
       // First, create or update the event without any tickets
       const upsertData = {
         group: {
           connect: {
-            id: groupId,
+            uid: groupUid,
           },
         },
-        author: {
-          connect: {
-            id: user!.id,
-          },
-        },
+        author: id
+          ? undefined
+          : {
+              connect: {
+                id: user!.id,
+              },
+            },
         description,
         contactMail,
         location,
@@ -457,7 +547,7 @@ builder.mutationField('upsertEvent', (t) =>
         where: { id: id ?? '' },
         create: {
           ...upsertData,
-          uid: await createUid({ title, groupId }),
+          uid: await createUid({ title, groupId: group.id }),
           links: { create: links },
           managers: {
             create: managers.map((m) => ({
@@ -674,14 +764,7 @@ export async function eventAccessibleByUser(
     case Visibility.Restricted: {
       if (!user) return false;
       // All managers can see the event, no matter their permissions
-      if (
-        eventManagedByUser(event, user, {
-          canEdit: false,
-          canEditPermissions: false,
-          canVerifyRegistrations: false,
-        })
-      )
-        return true;
+      if (eventManagedByUser(event, user, {})) return true;
 
       const ancestors = await prisma.group
         .findMany({
@@ -696,11 +779,7 @@ export async function eventAccessibleByUser(
 
     case Visibility.Private: {
       // All managers can see the event, no matter their permissions
-      return eventManagedByUser(event, user, {
-        canEdit: false,
-        canEditPermissions: false,
-        canVerifyRegistrations: false,
-      });
+      return eventManagedByUser(event, user, {});
     }
 
     default: {
@@ -720,17 +799,18 @@ export function eventManagedByUser(
     }>;
   },
   user: Context['user'],
-  { canEdit = true, canEditPermissions = false, canVerifyRegistrations = false }
+  required: { canEdit?: boolean; canEditPermissions?: boolean; canVerifyRegistrations?: boolean }
 ) {
   if (!user) return false;
   return Boolean(
-    event.managers.some(
-      ({ user: { uid }, ...permissions }) =>
-        uid === user.uid &&
-        ((permissions.canEdit && canEdit) ||
-          (permissions.canEditPermissions && canEditPermissions) ||
-          (permissions.canVerifyRegistrations && canVerifyRegistrations))
-    )
+    user.groups.some(({ groupId, canScanEvents }) => groupId === event.groupId && canScanEvents) ||
+      event.managers.some(({ user: { uid }, ...permissions }) => {
+        if (uid !== user.uid) return false;
+        if (required.canEdit && !permissions.canEdit) return false;
+        if (required.canEditPermissions && !permissions.canEditPermissions) return false;
+        if (required.canVerifyRegistrations && !permissions.canVerifyRegistrations) return false;
+        return true;
+      })
   );
 }
 
