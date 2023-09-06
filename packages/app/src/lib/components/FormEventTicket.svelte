@@ -17,6 +17,7 @@
   import { fromYearTier, schoolYearStart, yearRangeUpTo, yearTier } from '$lib/dates';
   import InputSelectMultiple from './InputSelectMultiple.svelte';
   import { DISPLAY_PAYMENT_METHODS } from '$lib/display';
+  import InputLinks from './InputLinks.svelte';
   const emit = createEventDispatcher();
 
   export let expandedTicketId = '';
@@ -35,6 +36,7 @@
     price: number;
     capacity: number;
     openToPromotions: number[];
+    links: Array<{ value: string; name: string }>;
     openToSchools: Array<{ name: string; color: string; uid: string }>;
     openToGroups: Array<{ name: string; uid: string; pictureFile: string }>;
     openToMajors: Array<{ name: string; shortName: string; id: string }>;
@@ -254,6 +256,12 @@
       />
     </div>
 
+    <InputLinks
+      label="Liens"
+      hint="Visibles une fois la place réservée"
+      bind:value={ticket.links}
+    />
+
     <InputNumber
       hint="0 signifie aucun parrainage autorisé"
       label="Limite de parrainages"
@@ -310,7 +318,7 @@
     display: flex;
     flex-flow: column wrap;
     gap: 1rem;
-    width: 500px;
+    width: 550px;
     max-width: 100%;
     padding: 1em;
     border-radius: var(--radius-block);

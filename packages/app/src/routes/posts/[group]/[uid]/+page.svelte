@@ -18,17 +18,19 @@
     $me?.groups.some(({ group: { uid }, canEditArticles }) => uid === group.uid && canEditArticles);
 
   $: canEditEvent =
-    $me?.admin ||
-    $me?.managedEvents?.some(
-      ({ canEdit, event }) => canEdit && event.uid === event?.uid && event.group === event?.group
-    );
+    $me?.canEditGroups ||
+    (Boolean(author?.id === $me?.id) &&
+      $me?.groups.some(
+        ({ canEditArticles, group }) => group.id === data.article.group.id && canEditArticles
+      ));
 </script>
 
-{#if pictureFile}
-  <img src="{env.PUBLIC_STORAGE_URL}{pictureFile}" alt="" />
-{/if}
-
 <div class="content">
+
+  {#if pictureFile}
+  <img src="{env.PUBLIC_STORAGE_URL}{pictureFile}" alt="" class="picture"/>
+  {/if}
+
   <header>
     <h1>
       <ButtonBack />
@@ -78,7 +80,19 @@
 </div>
 
 <style lang="scss">
-  .content {
+.picture {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 20rem;
+  margin-right: auto;
+  overflow: hidden;
+  border-radius: var(--radius-block);
+  object-fit: contain;
+  object-position: left;
+}
+
+.content {
     display: flex;
     flex-flow: column wrap;
     gap: 2rem;

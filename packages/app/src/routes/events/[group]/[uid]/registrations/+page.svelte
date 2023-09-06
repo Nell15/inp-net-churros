@@ -1,9 +1,10 @@
 <script lang="ts">
   import IconDownload from '~icons/mdi/download-outline';
+  import IconMarkAsPaid from '~icons/mdi/currency-usd';
+  import IconMarkAsUnpaid from '~icons/mdi/currency-usd-off';
   import type { PageData } from './$types';
   import * as jsonToCsv from 'json-to-csv-in-browser';
   import IconCheck from '~icons/mdi/check';
-  import IconCancel from '~icons/mdi/cancel';
   import IconClose from '~icons/mdi/close';
   import IconSortUp from '~icons/mdi/triangle-small-up';
   import IconChevronRight from '~icons/mdi/chevron-right';
@@ -20,6 +21,7 @@
   import { _registrationsQuery } from './+page';
   import { afterNavigate } from '$app/navigation';
   import { tooltip } from '$lib/tooltip';
+  import ButtonGhost from '$lib/components/ButtonGhost.svelte';
 
   let compact = false;
   let loadingMore = false;
@@ -78,7 +80,7 @@
               Bénéficiaire: benef?.fullName ?? beneficiary,
               'Achat par': author.fullName,
               Payée: humanBoolean(paid),
-              Scannée: humanBoolean(Boolean(verifiedAt)),
+              Scannée: humanBoolean(Boolean(verifiedAt) && paid),
               'Méthode de paiement': paymentMethod,
               Billet: ticket.name,
               Cotisant: benef
@@ -157,7 +159,7 @@
       }
 
       case 'state': {
-        const sortingIndex = (a: Registration) => (a.verifiedAt ? 0 : a.paid ? 1 : 2);
+        const sortingIndex = (a: Registration) => (a.verifiedAt && a.paid ? 0 : a.paid ? 1 : 2);
         return (a, b) => (desc ? -1 : 1) * (sortingIndex(a) - sortingIndex(b));
       }
 
@@ -237,7 +239,8 @@
 <header>
   <h1>{registrationsCounts.total} Réservations</h1>
   <section class="counts">
-    {registrationsCounts.paid} payées · {registrationsCounts.verified} scannées
+    {registrationsCounts.paid} payées · {registrationsCounts.verified} scannées · {registrationsCounts.unpaidLydia}
+    Lydias non payées
   </section>
 
   <div class="actions">
@@ -323,7 +326,7 @@
               ? `Scannée le ${formatDateTime(verifiedAt)} par ${verifiedBy?.fullName ?? '?'}`
               : undefined}
           >
-            {verifiedAt ? 'Scannée' : paid ? 'Payée' : 'Non payée'}
+            {verifiedAt && paid ? 'Scannée' : paid ? 'Payée' : 'Non payée'}
           </td>
           <td
             class="centered"
@@ -378,13 +381,68 @@
             <a href="/bookings/{code}/"><code>{code}</code></a>
           </td>
           <td class="actions">
-            <ButtonSecondary
+            <ButtonGhost
               danger={paid}
+              success={!paid}
               help={'Marquer comme ' + (paid ? 'non payée' : 'payée')}
               on:click={async () => updatePaidStatus(!paid, registration)}
             >
-              {#if paid} <IconCancel /> {:else} <IconCheck /> {/if}
-            </ButtonSecondary>
+              {#if paid} <IconMarkAsUnpaid /> {:else} <IconMarkAsPaid /> {/if}
+            </ButtonGhost>
+            {#if !verifiedAt}
+              <ButtonGhost
+                danger={Boolean(verifiedAt)}
+                success={!verifiedAt}
+                help={'Vérifier la réservation'}
+                on:click={async () => {
+                  await updatePaidStatus(true, registration);
+                  const { verifyRegistration } = await $zeus.mutate({
+                    verifyRegistration: [
+                      {
+                        eventUid: $page.params.uid,
+                        groupUid: $page.params.group,
+                        id,
+                      },
+                      {
+                        __typename: true,
+                        '...on Error': {
+                          message: true,
+                        },
+                        '...on MutationVerifyRegistrationSuccess': {
+                          data: {
+                            registration: {
+                              paid: true,
+                              verifiedAt: true,
+                              verifiedBy: {
+                                uid: true,
+                                pictureFile: true,
+                                fullName: true,
+                              },
+                            },
+                          },
+                        },
+                      },
+                    ],
+                  });
+
+                  if (verifyRegistration.__typename === 'Error') {
+                    console.error(verifyRegistration.message);
+                    return;
+                  }
+
+                  if (verifyRegistration.__typename === 'MutationVerifyRegistrationSuccess') {
+                    registrations.edges[
+                      registrations.edges.findIndex((r) => r.node.id === registration.id)
+                    ].node.verifiedAt = verifyRegistration.data.registration?.verifiedAt;
+                    registrations.edges[
+                      registrations.edges.findIndex((r) => r.node.id === registration.id)
+                    ].node.verifiedBy = verifyRegistration.data.registration?.verifiedBy;
+                  }
+                }}
+              >
+                <IconCheck />
+              </ButtonGhost>
+            {/if}
           </td>
         </tr>
       {:else}
@@ -422,13 +480,15 @@
   }
 
   header h1 {
+    padding-bottom: 0;
     margin-top: 2rem;
     margin-bottom: 0.25rem;
-    padding-bottom: 0;
   }
+
   section.counts {
     margin-bottom: 2rem;
   }
+
   .table-scroller {
     overflow-x: auto;
   }
@@ -487,6 +547,7 @@
   table:not(.compact) td {
     border-radius: var(--radius-inline);
   }
+
   tr.selected td:not(.actions) {
     background: var(--muted-border);
     border-right-color: var(--muted-border);
@@ -503,6 +564,7 @@
   }
 
   td.actions {
+    width: max-content;
     padding: 0.25rem 1rem;
     background: transparent;
   }

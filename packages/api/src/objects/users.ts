@@ -307,6 +307,7 @@ builder.queryField('birthdays', (t) =>
                     some: {
                       uid: {
                         in: user.major.schools.map((s) => s.uid),
+                        not: 'inp',
                       },
                     },
                   },
@@ -329,6 +330,8 @@ builder.mutationField('updateUser', (t) =>
     errors: {},
     args: {
       uid: t.arg.string(),
+      firstName: t.arg.string(),
+      lastName: t.arg.string(),
       majorId: t.arg.id(),
       graduationYear: t.arg.int({ required: false }),
       email: t.arg.string(),
@@ -379,6 +382,8 @@ builder.mutationField('updateUser', (t) =>
         contributesTo,
         cededImageRightsToTVn7,
         apprentice,
+        firstName,
+        lastName,
       },
       { user }
     ) {
@@ -468,6 +473,8 @@ builder.mutationField('updateUser', (t) =>
           address,
           phone,
           birthday,
+          firstName,
+          lastName,
           cededImageRightsToTVn7,
           apprentice,
           links: { deleteMany: {}, createMany: { data: links } },
