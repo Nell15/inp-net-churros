@@ -8,10 +8,20 @@ import { Request } from 'express';
 import { AuthModule } from './auth';
 
 @Module({
+	// providers: [
+	// 	{
+	// 		provide: APP_GUARD,
+	// 		useClass: JwtGuard,
+	// 	},
+	// ],
 	imports: [
 		GraphQLModule.forRoot<ApolloDriverConfig>({
 			driver: ApolloDriver,
 			autoSchemaFile: true,
+			// buildSchemaOptions: {
+			// 	fieldMiddleware: [scopeMiddleware],
+			// },
+
 			context: ({ req }: { req: Request }): Request => {
 				return req;
 			},

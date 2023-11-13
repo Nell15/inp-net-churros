@@ -13,6 +13,7 @@ import { CredentialType } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { LoginResponse } from 'src/objects/credentials';
+import { User } from './objects/users';
 
 @Injectable()
 export class AuthService {
@@ -52,8 +53,7 @@ export class AuthService {
 		return null;
 	}
 
-	login(user: any): LoginResponse {
-		// @TODO: type
+	login(user: User): LoginResponse {
 		const payload = { id: user.id };
 		return {
 			access_token: this.jwtService.sign(payload),
@@ -116,6 +116,11 @@ export class JwtGuard extends AuthGuard('jwt') {
 	constructor() {
 		super();
 	}
+
+	// canActivate(context: ExecutionContext) {
+	// 	console.log('canActivate');
+	// 	return super.canActivate(context);
+	// }
 
 	/**
 	 * This method is called when the user uses the @UseGuards(JwtGuard) decorator.
