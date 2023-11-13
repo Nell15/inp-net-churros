@@ -10,5 +10,4 @@ indent_style = space
 indent_size = 2
 
 [packages/api-next/**]
-indent_size = 4
 indent_style = tab
