@@ -4,11 +4,10 @@ import { PrismaModule, PrismaService } from '../prisma';
 
 @ObjectType()
 export class School {
-	@Field(() => ID) id: string;
-
 	/**
 	 * A unique but readable identifier. Ideal for use in URLs, for example.
 	 */
+	@Field(() => ID)
 	uid: string;
 
 	name: string;

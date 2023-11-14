@@ -13,8 +13,6 @@ export const scopeMiddleware: FieldMiddleware = async (
 	const { fieldName } = info;
 	const extensions = info.parentType.getFields()[fieldName].extensions;
 
-	console.log('ctx', ctx.context.req.user);
-
 	// check if the field has the scope extension
 	if (!extensions || !extensions.scopes) {
 		return await next();
@@ -23,12 +21,12 @@ export const scopeMiddleware: FieldMiddleware = async (
 	for (const scopeName of extensions.scopes as Scopes[]) {
 		switch (scopeName) {
 			case Scopes.login:
-				if (!ctx.context.req.user) {
+				if (!ctx.context.user) {
 					return null;
 				}
 				break;
 			case Scopes.admin:
-				if (!ctx.context.req.user?.admin) {
+				if (!ctx.context.user?.admin) {
 					return null;
 				}
 				break;

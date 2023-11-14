@@ -1,31 +1,33 @@
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import { APP_GUARD, NestFactory } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
 import { SchoolsModule } from './objects/schools';
 import { CredentialsModule } from './objects/credentials';
 import { Request } from 'express';
-import { AuthModule } from './auth';
+import { AuthModule, JwtGuard } from './auth';
+import { scopeMiddleware } from './common/middlewares/auth.middlewares';
 
 @Module({
-	// providers: [
-	// 	{
-	// 		provide: APP_GUARD,
-	// 		useClass: JwtGuard,
-	// 	},
-	// ],
+	providers: [
+		{
+			provide: APP_GUARD,
+			useClass: JwtGuard,
+		},
+	],
 	imports: [
 		GraphQLModule.forRoot<ApolloDriverConfig>({
 			driver: ApolloDriver,
 			autoSchemaFile: true,
-			// buildSchemaOptions: {
-			// 	fieldMiddleware: [scopeMiddleware],
-			// },
+			buildSchemaOptions: {
+				fieldMiddleware: [scopeMiddleware],
+			},
 
 			context: ({ req }: { req: Request }): Request => {
 				return req;
 			},
 		}),
+
 		AuthModule,
 		SchoolsModule,
 		CredentialsModule,

@@ -10,7 +10,6 @@ import {
 } from '@nestjs/graphql';
 import type { CredentialType } from '@prisma/client';
 import { AuthModule, AuthService, LocalGuard } from 'src/auth';
-import { UserAgent } from 'src/common/decorators/userAgent';
 import { Request } from 'express';
 import { User } from './users';
 
@@ -71,10 +70,9 @@ export class CredentialsResolver {
 	async login(
 		@Args('email') email: string,
 		@Args('password') password: string,
-		@UserAgent() userAgent: string,
-		@Context() request: Request, // @TODO: change for a user decorator instead requesting all the request object
+		@Context() request: Request,
 	): Promise<LoginResponse> {
-		return this.authService.login(request.user as User);
+		return await this.authService.login(request.user as User);
 	}
 }
 
