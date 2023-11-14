@@ -6,7 +6,7 @@ import { SchoolsModule } from './objects/schools';
 import { CredentialsModule } from './objects/credentials';
 import { Request } from 'express';
 import { AuthModule, JwtGuard } from './auth';
-import { scopeMiddleware } from './common/middlewares/auth.middlewares';
+import { scopeMiddleware } from './common/middlewares/scopeMiddleware';
 
 @Module({
 	providers: [
