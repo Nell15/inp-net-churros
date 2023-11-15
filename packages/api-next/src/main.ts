@@ -6,7 +6,7 @@ import { SchoolsModule } from './objects/schools';
 import { CredentialsModule } from './objects/credentials';
 import { Request } from 'express';
 import { AuthModule, JwtGuard } from './auth';
-import { scopeMiddleware } from './common/middlewares/scopeMiddleware';
+import { scopesMiddleware } from './common/middlewares/scopesMiddleware';
 
 @Module({
 	providers: [
@@ -20,7 +20,7 @@ import { scopeMiddleware } from './common/middlewares/scopeMiddleware';
 			driver: ApolloDriver,
 			autoSchemaFile: true,
 			buildSchemaOptions: {
-				fieldMiddleware: [scopeMiddleware],
+				fieldMiddleware: [scopesMiddleware],
 			},
 
 			context: ({ req }: { req: Request }): Request => {

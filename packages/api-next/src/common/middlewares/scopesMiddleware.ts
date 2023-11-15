@@ -10,23 +10,25 @@ export enum ScopesEnum {
 	admin = 'admin',
 }
 
-export function LoggedIn(): MethodDecorator &
+export function LoggedInField(): MethodDecorator &
 	ClassDecorator &
 	PropertyDecorator {
 	return Extensions({ scopes: [ScopesEnum.login] });
 }
 
-export function Admin(): MethodDecorator & ClassDecorator & PropertyDecorator {
+export function AdminField(): MethodDecorator &
+	ClassDecorator &
+	PropertyDecorator {
 	return Extensions({ scopes: [ScopesEnum.admin] });
 }
 
-export function Scopes(
+export function FieldScopes(
 	...args: string[] | ScopesEnum[]
 ): MethodDecorator & ClassDecorator & PropertyDecorator {
 	return Extensions({ scopes: [...args] });
 }
 
-export const scopeMiddleware: FieldMiddleware = async (
+export const scopesMiddleware: FieldMiddleware = async (
 	ctx: MiddlewareContext,
 	next: NextFn,
 ) => {
@@ -41,13 +43,13 @@ export const scopeMiddleware: FieldMiddleware = async (
 
 	for (const scopeName of extensions.scopes as ScopesEnum[]) {
 		switch (scopeName) {
-			case ScopesEnum.login:
-				if (!ctx.context.user) {
-					return null;
-				}
-				break;
 			case ScopesEnum.admin:
 				if (!ctx.context.user?.admin) {
+					return null;
+				}
+				return await next(); // admin takes precedence over other scopes
+			case ScopesEnum.login:
+				if (!ctx.context.user) {
 					return null;
 				}
 				break;

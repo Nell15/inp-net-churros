@@ -10,8 +10,10 @@ import {
 } from '@nestjs/graphql';
 import type { CredentialType } from '@prisma/client';
 import { AuthModule, AuthService, LocalGuard } from 'src/auth';
-import { Request } from 'express';
 import { User } from './users';
+import { UserContext } from '../common/decorators/user';
+import { Request } from 'express';
+import { LoggedInGuard } from '../common/middlewares/scopesGuard';
 
 @ObjectType()
 export class Credential {
@@ -31,7 +33,10 @@ export class Credential {
 	 */
 	type: CredentialType;
 
-	/**
+	/**"id"
+') id: string): Promise<boolean> {
+// await this.authService.deleteToken(id);
+		returntrue;
 	 * Token is the actual credential. It is hashed in the database.
 	 */
 	token: string;
@@ -70,9 +75,29 @@ export class CredentialsResolver {
 	async login(
 		@Args('email') email: string,
 		@Args('password') password: string,
-		@Context() request: Request,
+		@UserContext() user: User,
 	): Promise<LoginResponse> {
-		return await this.authService.login(request.user as User);
+		return await this.authService.login(user);
+	}
+
+	@UseGuards(LoggedInGuard)
+	@Mutation(() => Boolean, {
+		description: 'Logs a user out and invalidates the session token.',
+	})
+	async logout(@Context() req: Request): Promise<boolean> {
+		await this.authService.logout(req);
+		return true;
+	}
+
+	@UseGuards(LoggedInGuard)
+	@Mutation(() => Boolean, {
+		description: 'Invalidates a JWT.',
+	})
+	async deleteToken(@Args('id') id: string): Promise<boolean> {
+		console.log(id);
+		// @TODO: implement
+		// await this.authService.deleteToken(id);
+		return true;
 	}
 }
 

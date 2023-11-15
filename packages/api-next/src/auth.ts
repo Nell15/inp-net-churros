@@ -2,7 +2,6 @@ import { Strategy as PassportLocalStrategy } from 'passport-local';
 import { ExtractJwt, Strategy as PassportJwtStrategy } from 'passport-jwt';
 import { AuthGuard, PassportModule, PassportStrategy } from '@nestjs/passport';
 import {
-	CanActivate,
 	ExecutionContext,
 	Injectable,
 	Module,
@@ -85,6 +84,15 @@ export class AuthService {
 		return {
 			access_token: accessToken,
 		};
+	}
+
+	async logout(req: Request): Promise<void> {
+		await this.prisma.credential.deleteMany({
+			where: {
+				type: CredentialPrismaType.Jwt,
+				value: req.headers.authorization?.replace('Bearer ', ''),
+			},
+		});
 	}
 }
 
@@ -197,24 +205,6 @@ export class JwtGuard extends AuthGuard('jwt') {
 		const request = ctx.getContext();
 		request.body = ctx.getArgs();
 		return request;
-	}
-}
-
-/**
- * This guard is used to check if the user is logged in.
- * As the jwt already has been checked by the JwtGuard, we only need to check
- * if the user is in the context.
- *
- * This one throws an error if the user is not logged in.
- */
-@Injectable()
-export class LoggedInGuard implements CanActivate {
-	canActivate(context: ExecutionContext): boolean {
-		if (!GqlExecutionContext.create(context).getContext().user) {
-			throw new UnauthorizedException();
-		}
-
-		return true;
 	}
 }
 
