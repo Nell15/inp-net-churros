@@ -7,6 +7,7 @@ import {
 	Mutation,
 	ObjectType,
 	Parent,
+	registerEnumType,
 	ResolveField,
 	Resolver,
 } from '@nestjs/graphql';
@@ -18,6 +19,10 @@ import { UserContext } from '../common/decorators/userContext';
 import { Login } from '../common/middlewares/scopesManager';
 import { PrismaModule, PrismaService } from '../prisma';
 import { LoggedInField } from '../common/middlewares/scopesMiddleware';
+
+registerEnumType(CredentialType, {
+	name: 'CredentialType',
+});
 
 @ObjectType()
 export class Credential {
@@ -35,13 +40,15 @@ export class Credential {
 	/**
 	 * The type of the credential.
 	 */
+	@Field(() => CredentialType)
 	type: CredentialType;
 
 	/**
 	 * Token is the actual credential. It is hashed in the database.
 	 */
 	@LoggedInField()
-	token: string;
+	@Field(() => String, { name: 'token', nullable: true })
+	value: string;
 
 	/**
 	 * The userAgent of the device that created this credential.
@@ -143,8 +150,9 @@ export class CredentialsResolver {
 	@ResolveField('active', () => Boolean)
 	async active(@Parent() credential: Credential, @Context() req: Request) {
 		return (
-			credential.type in [CredentialType.Jwt, CredentialType.Token] &&
-			req.headers.authorization === `Bearer ${credential.token}`
+			(credential.type === CredentialType.Jwt ||
+				credential.type === CredentialType.Token) &&
+			req.headers.authorization === `Bearer ${credential.value}`
 		);
 	}
 
