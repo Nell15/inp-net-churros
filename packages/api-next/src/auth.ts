@@ -2,6 +2,7 @@ import { Strategy as PassportLocalStrategy } from 'passport-local';
 import { ExtractJwt, Strategy as PassportJwtStrategy } from 'passport-jwt';
 import { AuthGuard, PassportModule, PassportStrategy } from '@nestjs/passport';
 import {
+	CanActivate,
 	ExecutionContext,
 	Injectable,
 	Module,
@@ -19,6 +20,8 @@ import {
 	CredentialType,
 } from '@prisma/client';
 import * as process from 'process';
+import { ScopesEnum, ScopesManager } from './common/middlewares/scopesManager';
+import { Reflector } from '@nestjs/core';
 
 @Injectable()
 export class AuthService {
@@ -82,7 +85,7 @@ export class AuthService {
 		});
 
 		return {
-			access_token: accessToken,
+			token: accessToken,
 		};
 	}
 
@@ -205,6 +208,24 @@ export class JwtGuard extends AuthGuard('jwt') {
 		const request = ctx.getContext();
 		request.body = ctx.getArgs();
 		return request;
+	}
+}
+
+/**
+ * This guard is used to apply scopes specified in the @Scope decorator.
+ * It is globally applied to all resolvers. And launch
+ */
+@Injectable()
+export class ScopesGuard implements CanActivate {
+	constructor(private reflector: Reflector) {}
+
+	canActivate(context: ExecutionContext): boolean {
+		const scopes = this.reflector.get<ScopesEnum[]>(
+			'scopes',
+			context.getHandler(),
+		);
+
+		return ScopesManager.validateScopes(scopes, context);
 	}
 }
 

@@ -6,14 +6,18 @@ import {
 	ID,
 	Mutation,
 	ObjectType,
+	Parent,
+	ResolveField,
 	Resolver,
 } from '@nestjs/graphql';
-import type { CredentialType } from '@prisma/client';
+import { CredentialType } from '@prisma/client';
 import { AuthModule, AuthService, LocalGuard } from 'src/auth';
 import { User } from './users';
-import { UserContext } from '../common/decorators/user';
 import { Request } from 'express';
-import { LoggedInGuard } from '../common/middlewares/scopesGuard';
+import { UserContext } from '../common/decorators/userContext';
+import { Login } from '../common/middlewares/scopesManager';
+import { PrismaModule, PrismaService } from '../prisma';
+import { LoggedInField } from '../common/middlewares/scopesMiddleware';
 
 @ObjectType()
 export class Credential {
@@ -33,12 +37,10 @@ export class Credential {
 	 */
 	type: CredentialType;
 
-	/**"id"
-') id: string): Promise<boolean> {
-// await this.authService.deleteToken(id);
-		returntrue;
+	/**
 	 * Token is the actual credential. It is hashed in the database.
 	 */
+	@LoggedInField()
 	token: string;
 
 	/**
@@ -58,17 +60,23 @@ export class Credential {
 
 	active: boolean;
 
-	// user
+	/**
+	 * The user this credential belongs to.
+	 */
+	user: User;
 }
 
 @ObjectType()
 export class LoginResponse {
-	access_token: string;
+	token: string;
 }
 
 @Resolver(() => Credential)
 export class CredentialsResolver {
-	constructor(private authService: AuthService) {}
+	constructor(
+		private prisma: PrismaService,
+		private authService: AuthService,
+	) {}
 
 	@Mutation(() => LoginResponse)
 	@UseGuards(LocalGuard)
@@ -80,7 +88,6 @@ export class CredentialsResolver {
 		return await this.authService.login(user);
 	}
 
-	@UseGuards(LoggedInGuard)
 	@Mutation(() => Boolean, {
 		description: 'Logs a user out and invalidates the session token.',
 	})
@@ -89,20 +96,68 @@ export class CredentialsResolver {
 		return true;
 	}
 
-	@UseGuards(LoggedInGuard)
-	@Mutation(() => Boolean, {
-		description: 'Invalidates a JWT.',
-	})
-	async deleteToken(@Args('id') id: string): Promise<boolean> {
-		console.log(id);
-		// @TODO: implement
-		// await this.authService.deleteToken(id);
+	@Mutation(() => Boolean)
+	@Login()
+	async deleteToken(
+		@Args('id') id: string,
+		@UserContext() user: User,
+	): Promise<boolean> {
+		try {
+			await this.prisma.credential.delete({
+				where: {
+					id,
+					userId: user.id,
+					type: CredentialType.Jwt || CredentialType.Token,
+				},
+			});
+		} catch (e) {
+			return false;
+		}
+
 		return true;
+	}
+
+	@Mutation(() => Boolean)
+	@Login()
+	async renameSession(
+		@Args('id') id: string,
+		@Args('name') name: string,
+		@UserContext() user: User,
+	) {
+		try {
+			await this.prisma.credential.update({
+				where: {
+					id,
+					userId: user.id,
+					type: CredentialType.Jwt || CredentialType.Token,
+				},
+				data: { name },
+			});
+		} catch (e) {
+			return false;
+		}
+
+		return true;
+	}
+
+	@ResolveField('active', () => Boolean)
+	async active(@Parent() credential: Credential, @Context() req: Request) {
+		return (
+			credential.type in [CredentialType.Jwt, CredentialType.Token] &&
+			req.headers.authorization === `Bearer ${credential.token}`
+		);
+	}
+
+	@ResolveField('user', () => User)
+	async user(@Parent() credential: Credential) {
+		return this.prisma.user.findUnique({
+			where: { id: credential.userId },
+		});
 	}
 }
 
 @Module({
-	imports: [AuthModule],
+	imports: [AuthModule, PrismaModule],
 	providers: [CredentialsResolver],
 })
 export class CredentialsModule {}

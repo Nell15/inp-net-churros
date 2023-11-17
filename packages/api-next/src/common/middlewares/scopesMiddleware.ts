@@ -5,7 +5,7 @@ import {
 	NextFn,
 } from '@nestjs/graphql';
 
-export enum ScopesEnum {
+export enum FieldScopesEnum {
 	login = 'login',
 	admin = 'admin',
 }
@@ -13,17 +13,17 @@ export enum ScopesEnum {
 export function LoggedInField(): MethodDecorator &
 	ClassDecorator &
 	PropertyDecorator {
-	return Extensions({ scopes: [ScopesEnum.login] });
+	return Extensions({ scopes: [FieldScopesEnum.login] });
 }
 
 export function AdminField(): MethodDecorator &
 	ClassDecorator &
 	PropertyDecorator {
-	return Extensions({ scopes: [ScopesEnum.admin] });
+	return Extensions({ scopes: [FieldScopesEnum.admin] });
 }
 
 export function FieldScopes(
-	...args: string[] | ScopesEnum[]
+	...args: string[] | FieldScopesEnum[]
 ): MethodDecorator & ClassDecorator & PropertyDecorator {
 	return Extensions({ scopes: [...args] });
 }
@@ -41,14 +41,14 @@ export const scopesMiddleware: FieldMiddleware = async (
 		return await next();
 	}
 
-	for (const scopeName of extensions.scopes as ScopesEnum[]) {
+	for (const scopeName of extensions.scopes as FieldScopesEnum[]) {
 		switch (scopeName) {
-			case ScopesEnum.admin:
+			case FieldScopesEnum.admin:
 				if (!ctx.context.user?.admin) {
 					return null;
 				}
 				return await next(); // admin takes precedence over other scopes
-			case ScopesEnum.login:
+			case FieldScopesEnum.login:
 				if (!ctx.context.user) {
 					return null;
 				}

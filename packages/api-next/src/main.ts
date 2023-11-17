@@ -5,7 +5,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { SchoolsModule } from './objects/schools';
 import { CredentialsModule } from './objects/credentials';
 import { Request } from 'express';
-import { AuthModule, JwtGuard } from './auth';
+import { AuthModule, JwtGuard, ScopesGuard } from './auth';
 import { scopesMiddleware } from './common/middlewares/scopesMiddleware';
 
 @Module({
@@ -13,6 +13,10 @@ import { scopesMiddleware } from './common/middlewares/scopesMiddleware';
 		{
 			provide: APP_GUARD,
 			useClass: JwtGuard,
+		},
+		{
+			provide: APP_GUARD,
+			useClass: ScopesGuard,
 		},
 	],
 	imports: [
