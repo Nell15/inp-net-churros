@@ -110,134 +110,53 @@ function createUser(): Prisma.UserCreateInput{ 
     }
   };
 }*/
-
-//User rigolo de l'ancienne DB de test, que personne y touche on en est fier.
-let usersData : { firstName : string, lastName : string }[] = [
-  { firstName: 'Annie', lastName: 'Versaire' },
-  { firstName: 'Bernard', lastName: 'Tichaut' },
-  { firstName: 'Camille', lastName: 'Honnête' },
-  { firstName: 'Denis', lastName: 'Chon' },
-  { firstName: 'Élie', lastName: 'Coptère' },
-  { firstName: 'Fred', lastName: 'Voyage' },
-  { firstName: 'Gérard', lastName: 'Menvu' },
-  { firstName: 'Henri', lastName: 'Cochet' },
-  { firstName: 'Inès', lastName: 'Alamaternité' },
-  { firstName: 'Jennifer', lastName: 'Arepassé' },
-  { firstName: 'Kelly', lastName: 'Diote' },
-  { firstName: 'Lara', lastName: 'Clette' },
-  { firstName: 'Marc', lastName: 'Des Points' },
-  { firstName: 'Nordine', lastName: 'Ateur' },
-  { firstName: 'Otto', lastName: 'Graf' },
-  { firstName: 'Paul', lastName: 'Ochon' },
-  { firstName: 'Quentin', lastName: 'Deux Trois' },
-  { firstName: 'Rick', lastName: 'Astley' },
-  { firstName: 'Sacha', lastName: 'Touille' },
-  { firstName: 'Thérèse', lastName: 'Ponsable' },
-  { firstName: 'Urbain', lastName: 'De Bouche' },
-  { firstName: 'Vivien', lastName: 'Chezmoi' },
-  { firstName: 'Wendy', lastName: 'Gestion' },
-  { firstName: 'Xavier', lastName: 'K. Paétrela' },
-  { firstName: 'Yvon', lastName: 'Enbavé' },
-  { firstName: 'Zinédine', lastName: 'Pacesoir' },
+const schoolsData = [
+  {
+    name: 'EAU',
+    uid: 'o',
+    color: '#00ffff',
+    description: 'École de l’Eau',
+    address: '2 rue Charles Camichel, 31000 Toulouse', //generation par faker possible ???
+  },
+  {
+    name: 'FEU',
+    uid: 'feu',
+    color: '#b22222',
+    description: 'École de Feu',
+    address: '2 rue Charles Camichel, 31000 Toulouse',
+  },
+  {
+    name: 'TERRE',
+    uid: '3',
+    color: '#5e3f13',
+    description: 'École de Terre',
+    address: '2 rue Charles Camichel, 31000 Toulouse',
+  },
+  {
+    name: 'AIR',
+    uid: 'air',
+    color: '#d9eaff',
+    description: 'École de l’Air',
+    address: '2 rue Charles Camichel, 31000 Toulouse',
+  },
 ];
 
-//ajout d'utilisateur aléatoire par Faker
-for (let i=0; i < numberUserDB - usersData.length; i++){
-  usersData.push( {firstName : faker.person.firstName(), lastName: faker.person.lastName()} );
-}
-
-let majorList : string[] = ["SN", "MFEE", "EEEA"];
-
-let emailUserList : string[] = []
-for(let i =0; i < 50; i++){
-  emailUserList.push(faker.internet.email({ firstName: usersData[i]?.firstName, lastName: usersData[i]?.lastName }));
-}
-console.log(emailUserList);
-console.log(faker.lorem.paragraph({ min : 0, max : 50}));
-
-/*
-for (const[i, data] of usersData.entries()){
-    await prisma.user.create({
-      data: {
-          ...data,
-          email : faker.internet.email({ firstName : data.firstName, lastName : data.firstName}),
-          description : faker.lorem.paragraph({ min : 0, max : 50}),
-          links: {
-            create: [
-              { name: 'Facebook', value: '#'},
-              { name: 'Instagram', value: '#' },
-              { name: 'Telegram', value: '#' },
-              { name: 'Twitter', value: '#' },
-            ]
-          },
-          contributions:
-            faker.number.int() % 2 === 0 
-              ? {
-                create: {
-                  paid: true,
-                  option: {
-                    connect: {
-                      id: contributionOptions.find((option) =>
-                        major.schools.some((school) => school.id === option.offeredInId),
-                      )!.id,
-                    },
-                  },
-                },
-              }
-      }
-    })
-
-}
-commenté pour éviter d'exploser le pipeline
-*/
-
-const schoolsData = [
-    {
-      name: 'EAU',
-      uid: 'o',
-      color: '#00ffff',
-      description: 'École de l’Eau',
-      address: '2 rue Charles Camichel, 31000 Toulouse', //gener
-    },
-    {
-      name: 'FEU',
-      uid: 'feu',
-      color: '#b22222',
-      description: 'École de Feu',
-      address: '2 rue Charles Camichel, 31000 Toulouse',
-    },
-    {
-      name: 'TERRE',
-      uid: '3',
-      color: '#5e3f13',
-      description: 'École de Terre',
-      address: '2 rue Charles Camichel, 31000 Toulouse',
-    },
-    {
-      name: 'AIR',
-      uid: 'air',
-      color: '#d9eaff',
-      description: 'École de l’Air',
-      address: '2 rue Charles Camichel, 31000 Toulouse',
-    },
-  ];
-  
-  const servicesData = [
-    {
-      name: 'Moodle',
-      description: 'Plateforme de cours',
-      url: 'https://moodle-n7.inp-toulouse.fr/',
-      logo: 'https://copyleaks.com/wp-content/uploads/2022/08/moodle-m-with-grid-1024x1024.png',
-      logoSourceType: LogoSourceType.ExternalLink,
-    },
-    {
-      name: 'EDT',
-      description: 'Emploi du temps',
-      url: 'https://edt-n7.inp-toulouse.fr/',
-      logo: 'Calendar',
-      logoSourceType: LogoSourceType.Icon,
-    },
-  ];
+const servicesData = [
+  {
+    name: 'Moodle',
+    description: 'Plateforme de cours',
+    url: 'https://moodle-n7.inp-toulouse.fr/',
+    logo: 'https://copyleaks.com/wp-content/uploads/2022/08/moodle-m-with-grid-1024x1024.png',
+    logoSourceType: LogoSourceType.ExternalLink,
+  },
+  {
+    name: 'EDT',
+    description: 'Emploi du temps',
+    url: 'https://edt-n7.inp-toulouse.fr/',
+    logo: 'Calendar',
+    logoSourceType: LogoSourceType.Icon,
+  },
+];
 
 for (const school of schoolsData) {
   await prisma.school.create({
@@ -280,7 +199,123 @@ const elec = await prisma.major.create({
   },
 });
 
-const majors = [mecaniqueDesFluides, sciencesDuNumerique, elec];
+const contributionOptions = await prisma.contributionOption.findMany({
+  include: { offeredIn: true },
+});
+
+const majorList = [mecaniqueDesFluides, sciencesDuNumerique, elec];
+
+//User rigolo de l'ancienne DB de test, que personne y touche on en est fier.
+const usersData = [
+  { firstName: 'Annie', lastName: 'Versaire', admin: true}, //Unique compte de la DB qui possède les droits admin
+  { firstName: 'Bernard', lastName: 'Tichaut', canEditGroups: true }, //Unique compte "respo club"
+  { firstName: 'Camille', lastName: 'Honnête', canEditUsers: true },
+  { firstName: 'Denis', lastName: 'Chon' },
+  { firstName: 'Élie', lastName: 'Coptère' },
+  { firstName: 'Fred', lastName: 'Voyage' },
+  { firstName: 'Gérard', lastName: 'Menvu' },
+  { firstName: 'Henri', lastName: 'Cochet' },
+  { firstName: 'Inès', lastName: 'Alamaternité' },
+  { firstName: 'Jennifer', lastName: 'Arepassé' },
+  { firstName: 'Kelly', lastName: 'Diote' },
+  { firstName: 'Lara', lastName: 'Clette' },
+  { firstName: 'Marc', lastName: 'Des Points' },
+  { firstName: 'Nordine', lastName: 'Ateur' },
+  { firstName: 'Otto', lastName: 'Graf' },
+  { firstName: 'Paul', lastName: 'Ochon' },
+  { firstName: 'Quentin', lastName: 'Deux Trois' },
+  { firstName: 'Rick', lastName: 'Astley' },
+  { firstName: 'Sacha', lastName: 'Touille' },
+  { firstName: 'Thérèse', lastName: 'Ponsable' },
+  { firstName: 'Urbain', lastName: 'De Bouche' },
+  { firstName: 'Vivien', lastName: 'Chezmoi' },
+  { firstName: 'Wendy', lastName: 'Gestion' },
+  { firstName: 'Xavier', lastName: 'K. Paétrela' },
+  { firstName: 'Yvon', lastName: 'Enbavé' },
+  { firstName: 'Zinédine', lastName: 'Pacesoir' },
+];
+
+//ajout d'utilisateur aléatoire par Faker
+for (let i=0; i < numberUserDB - usersData.length; i++){
+  usersData.push( {firstName : faker.person.firstName(), lastName: faker.person.lastName()} );
+}
+
+
+/* -- Section debug --
+let emailUserList : string[] = [];
+let phoneUserList : string[] = [];
+let birthUserList : Date[] = [];
+let graduationYearList : number[] = [];
+
+for(let i =0; i < numberUserDB; i++){
+  emailUserList.push(faker.internet.email({ firstName: usersData[i]?.firstName, lastName: usersData[i]?.lastName }));
+  phoneUserList.push(faker.location.streetAddress());
+  birthUserList.push(faker.date.birthdate({ min : 17, max : 25, mode: "age"}))
+  graduationYearList.push(faker.helpers.weightedArrayElement([
+    { weight: 10, value: 2026 },
+    { weight: 10, value: 2025 },
+    { weight: 10, value: 2024 },
+    { weight: 3, value: 2023},
+    {weight: 1, value:2022}
+  ]))
+}
+console.log(emailUserList);
+console.log(phoneUserList);
+console.log(birthUserList);
+console.log(graduationYearList);
+*/
+
+for (const[_, data] of usersData.entries()){
+  const major = await prisma.major.findUniqueOrThrow({
+    where : { id: faker.helpers.arrayElement(majorList).id},
+    include: { schools : true},
+  })
+    await prisma.user.create({
+      data: {
+          ...data,
+          uid: await createUid(data),
+          email : faker.internet.email({ firstName : data.firstName, lastName : data.firstName}),
+          description : faker.lorem.paragraph({ min : 0, max : 50}),
+          links: {
+            create: [
+              { name: 'Facebook', value: '#'},
+              { name: 'Instagram', value: '#' },
+              { name: 'Telegram', value: '#' },
+              { name: 'Twitter', value: '#' },
+            ]
+          },
+          contributions:
+            faker.number.int({ min : 0, max: 10 }) % 10 === 0 //génération d'une majorité de cotissant
+              ? {
+                create: {
+                  paid: true,
+                  option: {
+                    connect: {
+                      id: contributionOptions.find((option) =>
+                        major.schools.some((school) => school.id === option.offeredInId),
+                      )!.id,
+                    },
+                  },
+                },
+              }
+              : undefined,
+          phone: faker.phone.number(),
+          address: faker.location.streetAddress(),
+          birthday: faker.date.birthdate({ min : 17, max : 25, mode: "age"}),
+          graduationYear : faker.helpers.weightedArrayElement([
+            { weight: 10, value: 2026 },
+            { weight: 10, value: 2025 },
+            { weight: 10, value: 2024 },
+            { weight: 3, value: 2023},
+            {weight: 1, value:2022}
+          ]),
+          major: { connect: { id : major.id }},
+          credentials: { create: { type: CredentialType.Password, value: await hash('a') } },
+          canAccessDocuments: true,
+      },
+    });
+
+}
 
 interface subject{
 
