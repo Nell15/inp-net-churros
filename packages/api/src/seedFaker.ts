@@ -2,34 +2,13 @@ import { fakerFR } from '@faker-js/faker';
 import { prisma } from '#lib';
 import { CredentialType, GroupType, LogoSourceType, Visibility, type Prisma } from '@prisma/client';
 import { hash } from 'argon2';
-import { exit } from 'node:process';
 import slug from 'slug';
 import { createUid } from './services/registration.js';
-import { isBooleanObject } from 'node:util/types';
 
 const faker = fakerFR; //j'avais la flemme de faire des FakerFRFR.machin partout
-faker.seed(5);
+faker.seed(5); //seed de génération de la DB, pour générer une DB avec de nouvelles données il suffit juste de changer la valeur de la seed
 
 let numberUserDB : number = 50; //Nombre d'utilisateur dans la DB de test
-
-//définitio de l'ensemble des enum défini pour générer des données avec faker
-enum role{
-    Prez,
-    Trez,
-    VP,
-    Secrétaire,
-    Membre
-};
-
-
-
-interface User {
-    firstName : string,
-    lastName : string
-    admin? : Boolean,
-    canEditGroups? : Boolean,
-    canEditUsers? : Boolean, 
-}
 
 function* range(start: number, end: number): Generator<number> {
     for (let i = start; i < end; i++) yield i;
@@ -199,11 +178,137 @@ const elec = await prisma.major.create({
   },
 });
 
+const majors = [mecaniqueDesFluides, sciencesDuNumerique, elec];
+
+const plomberie = await prisma.subject.create({
+  data: {
+    name: "Plomberie",
+    uid: 'plomberie',
+    majors: { connect: [{ id: mecaniqueDesFluides.id }] },
+    yearTier: 1,
+    forApprentices: false,
+  },
+});
+
+const chomeur = await prisma.subject.create({
+  data: {
+    name: "Chomeur",
+    uid: 'chomeur',
+    majors: { connect: [{ id: mecaniqueDesFluides.id }] },
+    yearTier: 1,
+    forApprentices: false,
+  },
+});
+
+const transistor = await prisma.subject.create({
+  data: {
+    name: "Transistor",
+    uid: 'transistor',
+    majors: { connect: [{ id: elec.id }] },
+    yearTier: 1,
+    forApprentices: false,
+  },
+});
+const cableElec = await prisma.subject.create({
+  data: {
+    name: "Cable Elec",
+    uid: 'cable-elec',
+    majors: { connect: [{ id: elec.id }] },
+    yearTier: 1,
+    forApprentices: false,
+  },
+});
+
+const ia = await prisma.subject.create({
+  data: {
+    name: "IA (fraude)",
+    uid: 'ia',
+    majors: { connect: [{ id: sciencesDuNumerique.id }] },
+    yearTier: 1,
+    forApprentices: false,
+  },
+});
+
+const rezo = await prisma.subject.create({
+  data: {
+    name: "Rezo",
+    uid: 'rezo',
+    majors: { connect: [{ id: elec.id }] },
+    yearTier: 1,
+    forApprentices: false,
+  },
+});
+
+const minors = [plomberie, chomeur, transistor, cableElec, ia, rezo];
+
+
+for (const [i, name] of ['AE EAU 2022', 'AE FEU 2022', 'AE TERRE 2022', 'AE AIR 2022'].entries()) {
+  await prisma.studentAssociation.create({
+    data: {
+      uid: slug(name),
+      description: 'Une association étudiante',
+      name,
+      school: { connect: { id: schools[i]!.id } },
+      links: { create: [] },
+      lydiaAccounts: {
+        create: {
+          name,
+          vendorToken: 'b',
+          privateToken: 'b',
+        },
+      },
+    },
+  });
+}
+
+const studentAssociations = await prisma.studentAssociation.findMany({ include: { school: true } });
+
+for (const asso of studentAssociations) {
+  for (const name of ['FOY', 'BDE', 'BDD', 'BDA', 'BDS']) {
+    await prisma.group.create({
+      data: {
+        name,
+        uid: slug(name + ' ' + asso.name),
+        color: color(name),
+        type: GroupType.StudentAssociationSection,
+        studentAssociation: { connect: { id: asso.id } },
+        links: {
+          create: [],
+        },
+        address: '2 rue Charles Camichel, 31000 Toulouse',
+        email: `${slug(name)}@list.example.com`,
+        lyiaAccounts: {
+          create: {
+            name: `${asso.school.name.toUpperCase()} ${name.toUpperCase()}`,
+            privateToken: 'a',
+            vendorToken: 'a',
+          },
+        },
+      },
+    });
+  }
+}
+
+const studentAssociationsWithLydiaAccounts = await prisma.studentAssociation.findMany({
+  include: { school: true, lydiaAccounts: true },
+});
+
+for (const ae of studentAssociationsWithLydiaAccounts) {
+  await prisma.contributionOption.create({ //
+    data: {
+      paysFor: { connect: { id: ae.id } },
+      name: ae.name,
+      offeredIn: { connect: { id: ae.school.id } },
+      price: faker.number.int({ min : 30, max: 200}),
+      beneficiary:
+        ae.lydiaAccounts.length > 0 ? { connect: { id: ae.lydiaAccounts[0]?.id } } : undefined,
+    },
+  });
+}
+
 const contributionOptions = await prisma.contributionOption.findMany({
   include: { offeredIn: true },
 });
-
-const majorList = [mecaniqueDesFluides, sciencesDuNumerique, elec];
 
 //User rigolo de l'ancienne DB de test, que personne y touche on en est fier.
 const usersData = [
@@ -233,6 +338,7 @@ const usersData = [
   { firstName: 'Xavier', lastName: 'K. Paétrela' },
   { firstName: 'Yvon', lastName: 'Enbavé' },
   { firstName: 'Zinédine', lastName: 'Pacesoir' },
+  { firstName: 'Rick', lastName: 'Astley'} //https://www.youtube.com/watch?v=dQw4w9WgXcQ
 ];
 
 //ajout d'utilisateur aléatoire par Faker
@@ -267,7 +373,7 @@ console.log(graduationYearList);
 
 for (const[_, data] of usersData.entries()){
   const major = await prisma.major.findUniqueOrThrow({
-    where : { id: faker.helpers.arrayElement(majorList).id},
+    where : { id: faker.helpers.arrayElement(majors).id},
     include: { schools : true},
   })
     await prisma.user.create({
@@ -306,8 +412,8 @@ for (const[_, data] of usersData.entries()){
             { weight: 10, value: 2026 },
             { weight: 10, value: 2025 },
             { weight: 10, value: 2024 },
-            { weight: 3, value: 2023},
-            {weight: 1, value:2022}
+            { weight: 3, value: 2023 },
+            { weight: 1, value:2022 }
           ]),
           major: { connect: { id : major.id }},
           credentials: { create: { type: CredentialType.Password, value: await hash('a') } },
@@ -316,6 +422,28 @@ for (const[_, data] of usersData.entries()){
     });
 
 }
+
+const users = await prisma.user.findMany();
+const userEEEA = users.filter((element) => element.majorId === "eaaa");
+
+let numberSubject : number = 10; 
+//creation de nbSubject pour toute les mineurs des filières possible
+for (const[i, minor] of minors.entries()){
+  for(let j=0; j< numberSubject; j++){
+      await prisma.document.create({
+        data:{
+          description: faker.lorem.paragraph({ min : 2, max : 10}),
+          title: 'Un document',
+          uid: 'un-document',
+          schoolYear: faker.number.int({ min : 2015, max : 2024}),
+          subject: { connect: { id: minors[i]?.id } }, 
+          type: 'Exam',
+          uploader: { connect: { uid: faker.helpers.arrayElement(users.filter((element) => element.minorId === minor.id)).uid } }, //recup uniquement les users de la bonne mineur pour en faire des auteurs
+        }
+      })
+    }
+}
+
 
 interface subject{
 
