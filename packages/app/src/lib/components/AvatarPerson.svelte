@@ -4,6 +4,7 @@
   import IconCanEditMembers from '~icons/mdi/account-edit-outline';
   import IconCanEditPosts from '~icons/mdi/text-box-edit-outline';
   import IconCanScanEvents from '~icons/mdi/qrcode';
+  import { fade } from 'svelte/transition';
   export let small = false;
   export let inline = false;
   export let fullName: string;
@@ -25,6 +26,7 @@
   class:small
   class:highlighted
   class="person"
+  transition:fade
   {href}
 >
   <div class="img">
