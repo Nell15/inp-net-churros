@@ -1,16 +1,16 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { fullsizePage } from '$lib/../routes/(app)/+layout.svelte';
   import NavigationTabs from '$lib/components/NavigationTabs.svelte';
   import { me } from '$lib/session';
+  import { onMount } from 'svelte';
   import type { PageData } from './$types';
-  import ButtonBack from '$lib/components/ButtonBack.svelte';
 
   $: ({ group, uid } = $page.params);
 
   export let data: PageData;
   const TABS = {
     '': 'Infos',
-    'edit': 'Modifier',
     'registrations': 'Places',
     'scan': 'Vérifier',
   } as const;
@@ -21,14 +21,17 @@
     return data.event.managers.find((m) => m.user.uid === $me?.uid);
   }
 
-  const shownTabs = ['', 'edit', 'registrations', 'scan'].filter((tab) => {
+  onMount(() => {
+    $fullsizePage = true;
+    return () => {
+      $fullsizePage = false;
+    };
+  });
+
+  const shownTabs = ['', 'registrations', 'scan'].filter((tab) => {
     switch (tab) {
       case '': {
         return true;
-      }
-
-      case 'edit': {
-        return Boolean($me?.admin || manager()?.canEdit || manager()?.canEditPermissions);
       }
 
       case 'scan': {
@@ -61,7 +64,7 @@
 </script>
 
 <section class="tabs">
-  {#if shownTabs.length > 1 && currentTab !== 'edit'}
+  {#if shownTabs.length > 1}
     <NavigationTabs
       --text={currentTab === 'scan' ? 'white' : 'var(--text)'}
       tabs={shownTabs.map((tab) => ({

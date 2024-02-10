@@ -89,6 +89,10 @@
   </ul>
 {/if}
 
+<section class="reactions">
+  <AreaReactions bind:myReactions bind:reactionCounts connection={{ eventId: data.event.id }} />
+</section>
+
 <section class="description user-html">
   {#if links.length > 0}
     <ul class="links nobullet">
@@ -104,10 +108,6 @@
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html descriptionHtml}
   </div>
-</section>
-
-<section class="reactions">
-  <AreaReactions bind:myReactions bind:reactionCounts connection={{ eventId: data.event.id }} />
 </section>
 
 {#if tickets.length > 0}
@@ -178,15 +178,26 @@
     <ButtonSecondary href="mailto:{contactMail}">Contacter l'orga</ButtonSecondary>
   </h2>
   <ul class="nobullet organizers">
-    {#each [group, ...coOrganizers] as g}
-      <li class="organizer-name-and-contact">
-        <a class="organizer-name" href="/groups/{g.uid}">
-          <img src={groupLogoSrc($isDark, g)} alt="" />
-          {g.name}
-        </a>
-      </li>
-    {/each}
+    <li class="organizer-name-and-contact">
+      <a class="organizer-name" href="/groups/{group.uid}">
+        <img src={groupLogoSrc($isDark, group)} alt="" />
+        {group.name}
+      </a>
+    </li>
   </ul>
+  {#if coOrganizers.length > 0}
+    <h3>Avec la participation de</h3>
+    <ul class="nobullet organizers">
+      {#each coOrganizers as g}
+        <li class="organizer-name-and-contact">
+          <a class="organizer-name" href="/groups/{g.uid}">
+            <img src={groupLogoSrc($isDark, g)} alt="" />
+            {g.name}
+          </a>
+        </li>
+      {/each}
+    </ul>
+  {/if}
 </section>
 
 <style lang="scss">
@@ -195,6 +206,7 @@
     padding: 0 1rem;
     margin: 0 auto;
     margin-top: 2rem;
+    width: 100%;
   }
 
   h2 {
@@ -263,6 +275,10 @@
     margin-top: 0.5rem;
   }
 
+  section.organizer h3 {
+    margin-top: 1rem;
+  }
+
   .organizer-name-and-contact {
     display: flex;
     align-items: center;
@@ -279,6 +295,13 @@
       height: 3rem;
       object-fit: contain;
     }
+  }
+
+  .reactions :global(ul) {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: center;
+    align-items: center;
   }
 
   ul.bookings {
