@@ -11,6 +11,8 @@ build:
     - yarn build
 
 pages:
+  only:
+    - tags
   # will fail before the query buildInfo gets added to the publicly-accessible repo
   allow_failure: true
   before_script:
