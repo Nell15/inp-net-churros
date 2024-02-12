@@ -116,4 +116,14 @@ dialog {
     --border: #{$red-700};
     --hover-border: #{$red-500};
   }
+
+  &.pan7on,
+  &.pan7on::backdrop {
+    --bg: #{$white};
+    --text: #{$black};
+    --hover-bg: #{$amber-50};
+    --hover-text: #{$neutral-700};
+    --primary-link: #{$amber-300};
+
+  }
 }

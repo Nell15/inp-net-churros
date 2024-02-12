@@ -243,6 +243,7 @@
             dark: 'Sombre',
             light: 'Clair',
             hacker: 'h4ck3r',
+            pan7on: 'pan7on',
           }}
           bind:value={$theme}
         />
