@@ -38,6 +38,8 @@ dialog {
     --primary-shadow: 0 0.25rem 0.5rem #{$black};
     --primary-disabled-bg: var(--card-bg);
     --primary-disabled-text: #c6f6d5;
+    --secondary-bg: #0b5221;
+    --secondary-hover-bg: #37e06c;
     --loading-bg: #0d6e2c;
     --hover-bg: #010703;
     --hover-text: #{$neutral-200};
@@ -125,11 +127,11 @@ dialog {
     --muted: #{$slate-500};
     --error: #{$red-800};
     --link: #e79e00;
-    --border: #{$amber-300};
+    --border: #{$gray-400};
     --shadow: 0 0 0.125rem #0004, 0 0.125rem 0.5rem #0001;
     --shadow-big: 0 0 0.5rem #0004, 0 0.5rem 3rem #0001;
     --ring: #{rgba($slate-400, 50%)};
-    --hover-bg: #fff5dc;
+    --hover-bg: #fff8e7;
     --hover-text: #{$neutral-700};
     --hover-border: #{$gray-500};
     --disabled-bg: #{$gray-100};
@@ -140,7 +142,7 @@ dialog {
     --primary-bg: #ffd57a;
     --primary-text: #{$neutral-800};
     --primary-link: #ffc400;
-    --primary-border: #{$amber-400};
+    --primary-border: #{$gray-400};
     --primary-shadow: 0 0.25rem 0.5rem #{rgba($zinc-800, 20%)};
     --primary-ring: #{rgba($blue-400, 50%)};
     --primary-hover-bg: #ffc31d;
@@ -149,6 +151,10 @@ dialog {
     --primary-disabled-bg: #{rgba(#ffd57a, 50%)};
     --primary-disabled-text: #{$white};
     --primary-disabled-border: #{$zinc-500};
+
+    // Secondary
+    --secondary-bg: #{$amber-300};
+    --secondary-hover-bg: #{$amber-300};
 
     // Success
     --success-bg: #{$emerald-200};
