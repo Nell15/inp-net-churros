@@ -99,7 +99,7 @@
     "#lib": "./build/src/lib/index.js"
   },
   "prisma": {
-    "seed": "tsx ./src/seed.ts"
+    "seed": "tsx ./src/seed-faker.ts"
   },
   "private": true,
   "scripts": {

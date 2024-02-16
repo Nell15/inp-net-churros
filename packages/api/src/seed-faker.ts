@@ -1,94 +1,53 @@
-import { fakerFR } from '@faker-js/faker';
 import { prisma } from '#lib';
+import { fakerFR } from '@faker-js/faker';
 import { CredentialType, GroupType, LogoSourceType, Visibility, type Prisma } from '@prisma/client';
 import { hash } from 'argon2';
+import { exit } from 'node:process';
 import slug from 'slug';
 import { createUid } from './services/registration.js';
 
 const faker = fakerFR; //j'avais la flemme de faire des FakerFRFR.machin partout
-faker.seed(5); //seed de génération de la DB, pour générer une DB avec de nouvelles données il suffit juste de changer la valeur de la seed
+faker.seed(6); //seed de génération de la DB, pour générer une DB avec de nouvelles données il suffit juste de changer la valeur de la seed
 
-let numberUserDB : number = 50; //Nombre d'utilisateur dans la DB de test
+const numberUserDB: number = 50; //Nombre d'utilisateur dans la DB de test
 
 function* range(start: number, end: number): Generator<number> {
-    for (let i = start; i < end; i++) yield i;
-    //js weighted array random
-  }
-
-
- //const graduationYears = [...range()]
-  
-  type SizedArray<T, N extends number> = N extends N
-    ? number extends N
-      ? T[]
-      : _TupleOf<T, N, []>
-    : never;
-  type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N
-    ? R
-    : _TupleOf<T, N, [T, ...R]>;
-  
-  const color = (str: string) => {
-    let hash = 0xc0_ff_ee;
-    /* eslint-disable */
-    for (const char of str) hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0;
-    const red = ((hash & 0xff0000) >> 16) + 1;
-    const green = ((hash & 0x00ff00) >> 8) + 1;
-    const blue = (hash & 0x0000ff) + 1;
-    /* eslint-enable */
-    const l = 0.4 * red + 0.4 * green + 0.2 * blue;
-    const h = (n: number) =>
-      Math.min(0xd0, Math.max(0x60, Math.floor((n * 0xd0) / l)))
-        .toString(16)
-        .padStart(2, '0');
-    return `#${h(red)}${h(green)}${h(blue)}`;
-  };
-  
-  function randomChoice<T>(array: T[]): T {
-    return array[Math.floor(Math.random() * array.length)]!;
-  }
-  
-  function randomIdOf(objects: Array<{ id: string }>): string {
-    return randomChoice(objects).id;
-  }
-  
-  function randomIdsOf<Count extends number>(
-    objects: Array<{ id: string }>,
-    count: Count,
-  ): SizedArray<string, Count> {
-    const result = [] as string[];
-    let pool = objects;
-    while (result.length < count) {
-      const choice = randomChoice(pool);
-      result.push(choice.id);
-      pool = pool.filter((o) => o.id !== choice.id);
-    }
-  
-    return result as SizedArray<string, Count>;
-  }
-  
-  // randomizes hours and minutes from given date
-  function randomTime(date: Date, hoursIn: Generator<number>): Date {
-    return new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-      randomChoice([...hoursIn]),
-      Math.floor(Math.random() * 60),
-    );
+  for (let i = start; i < end; i++) yield i;
+  //js weighted array random
 }
 
+//const graduationYears = [...range()]
+const color = (str: string) => {
+  let hash = 0xc0_ff_ee;
+  /* eslint-disable */
+  for (const char of str) hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0;
+  const red = ((hash & 0xff0000) >> 16) + 1;
+  const green = ((hash & 0x00ff00) >> 8) + 1;
+  const blue = (hash & 0x0000ff) + 1;
+  /* eslint-enable */
+  const l = 0.4 * red + 0.4 * green + 0.2 * blue;
+  const h = (n: number) =>
+    Math.min(0xd0, Math.max(0x60, Math.floor((n * 0xd0) / l)))
+      .toString(16)
+      .padStart(2, '0');
+  return `#${h(red)}${h(green)}${h(blue)}`;
+};
 
-//Génération d'un user aléatoire
-/*
-function createUser(): Prisma.UserCreateInput{ 
-    const firstName = faker.person.firstName()
-    const lastName = faker.person.lastName()
-    return {
-      firstName, lastName, uid: await createUid({firstName, lastName}),
-      email: faker.internet.email({firstName, lastName}), 
-    }
-  };
-}*/
+function randomChoice<T>(array: T[]): T {
+  return array[Math.floor(Math.random() * array.length)]!;
+}
+
+// randomizes hours and minutes from given date
+function randomTime(date: Date, hoursIn: Generator<number>): Date {
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    randomChoice([...hoursIn]),
+    Math.floor(Math.random() * 60),
+  );
+}
+
 const schoolsData = [
   {
     name: 'EAU',
@@ -172,7 +131,7 @@ const sciencesDuNumerique = await prisma.major.create({
 const elec = await prisma.major.create({
   data: {
     shortName: 'EEEA',
-    uid: 'eeea', 
+    uid: 'eeea',
     name: 'éléectronique, énergie électrique & automatique',
     schools: { connect: { id: schools[0]!.id } },
   },
@@ -180,67 +139,60 @@ const elec = await prisma.major.create({
 
 const majors = [mecaniqueDesFluides, sciencesDuNumerique, elec];
 
-const plomberie = await prisma.subject.create({
+const plomberie = await prisma.minor.create({
   data: {
-    name: "Plomberie",
+    name: 'Plomberie',
     uid: 'plomberie',
     majors: { connect: [{ id: mecaniqueDesFluides.id }] },
     yearTier: 1,
-    forApprentices: false,
   },
 });
 
-const chomeur = await prisma.subject.create({
+const chomeur = await prisma.minor.create({
   data: {
-    name: "Chomeur",
+    name: 'Chomeur',
     uid: 'chomeur',
     majors: { connect: [{ id: mecaniqueDesFluides.id }] },
     yearTier: 1,
-    forApprentices: false,
   },
 });
 
-const transistor = await prisma.subject.create({
+const transistor = await prisma.minor.create({
   data: {
-    name: "Transistor",
+    name: 'Transistor',
     uid: 'transistor',
     majors: { connect: [{ id: elec.id }] },
     yearTier: 1,
-    forApprentices: false,
   },
 });
-const cableElec = await prisma.subject.create({
+const cableElec = await prisma.minor.create({
   data: {
-    name: "Cable Elec",
+    name: 'Cable Elec',
     uid: 'cable-elec',
     majors: { connect: [{ id: elec.id }] },
     yearTier: 1,
-    forApprentices: false,
   },
 });
 
-const ia = await prisma.subject.create({
+const ia = await prisma.minor.create({
   data: {
-    name: "IA (fraude)",
+    name: 'IA (fraude)',
     uid: 'ia',
     majors: { connect: [{ id: sciencesDuNumerique.id }] },
     yearTier: 1,
-    forApprentices: false,
   },
 });
 
-const rezo = await prisma.subject.create({
+const rezo = await prisma.minor.create({
   data: {
-    name: "Rezo",
+    name: 'Rezo',
     uid: 'rezo',
     majors: { connect: [{ id: elec.id }] },
     yearTier: 1,
-    forApprentices: false,
   },
 });
 
 const minors = [plomberie, chomeur, transistor, cableElec, ia, rezo];
-
 
 for (const [i, name] of ['AE EAU 2022', 'AE FEU 2022', 'AE TERRE 2022', 'AE AIR 2022'].entries()) {
   await prisma.studentAssociation.create({
@@ -294,12 +246,12 @@ const studentAssociationsWithLydiaAccounts = await prisma.studentAssociation.fin
 });
 
 for (const ae of studentAssociationsWithLydiaAccounts) {
-  await prisma.contributionOption.create({ //
+  await prisma.contributionOption.create({
     data: {
       paysFor: { connect: { id: ae.id } },
       name: ae.name,
       offeredIn: { connect: { id: ae.school.id } },
-      price: faker.number.int({ min : 30, max: 200}),
+      price: faker.number.int({ min: 30, max: 200 }),
       beneficiary:
         ae.lydiaAccounts.length > 0 ? { connect: { id: ae.lydiaAccounts[0]?.id } } : undefined,
     },
@@ -312,7 +264,7 @@ const contributionOptions = await prisma.contributionOption.findMany({
 
 //User rigolo de l'ancienne DB de test, que personne y touche on en est fier.
 const usersData = [
-  { firstName: 'Annie', lastName: 'Versaire', admin: true}, //Unique compte de la DB qui possède les droits admin
+  { firstName: 'Annie', lastName: 'Versaire', admin: true }, //Unique compte de la DB qui possède les droits admin
   { firstName: 'Bernard', lastName: 'Tichaut', canEditGroups: true }, //Unique compte "respo club"
   { firstName: 'Camille', lastName: 'Honnête', canEditUsers: true },
   { firstName: 'Denis', lastName: 'Chon' },
@@ -329,7 +281,6 @@ const usersData = [
   { firstName: 'Otto', lastName: 'Graf' },
   { firstName: 'Paul', lastName: 'Ochon' },
   { firstName: 'Quentin', lastName: 'Deux Trois' },
-  { firstName: 'Rick', lastName: 'Astley' },
   { firstName: 'Sacha', lastName: 'Touille' },
   { firstName: 'Thérèse', lastName: 'Ponsable' },
   { firstName: 'Urbain', lastName: 'De Bouche' },
@@ -338,13 +289,12 @@ const usersData = [
   { firstName: 'Xavier', lastName: 'K. Paétrela' },
   { firstName: 'Yvon', lastName: 'Enbavé' },
   { firstName: 'Zinédine', lastName: 'Pacesoir' },
-  { firstName: 'Rick', lastName: 'Astley'} //https://www.youtube.com/watch?v=dQw4w9WgXcQ
+  { firstName: 'Rick', lastName: 'Astley' }, //https://www.youtube.com/watch?v=dQw4w9WgXcQ
 ];
 
 //ajout d'utilisateur aléatoire par Faker
-for (let i=0; i < numberUserDB - usersData.length; i++){
-  usersData.push( {firstName : faker.person.firstName(), lastName: faker.person.lastName()} );
-}
+for (let i = 0; i < numberUserDB - usersData.length; i++) 
+  usersData.push({ firstName: faker.person.firstName(), lastName: faker.person.lastName() });
 
 
 /* -- Section debug --
@@ -371,76 +321,92 @@ console.log(birthUserList);
 console.log(graduationYearList);
 */
 
-for (const[_, data] of usersData.entries()){
+for (const [_, data] of usersData.entries()) {
   const major = await prisma.major.findUniqueOrThrow({
-    where : { id: faker.helpers.arrayElement(majors).id},
-    include: { schools : true},
-  })
-    await prisma.user.create({
-      data: {
-          ...data,
-          uid: await createUid(data),
-          email : faker.internet.email({ firstName : data.firstName, lastName : data.firstName}),
-          description : faker.lorem.paragraph({ min : 0, max : 50}),
-          links: {
-            create: [
-              { name: 'Facebook', value: '#'},
-              { name: 'Instagram', value: '#' },
-              { name: 'Telegram', value: '#' },
-              { name: 'Twitter', value: '#' },
-            ]
-          },
-          contributions:
-            faker.number.int({ min : 0, max: 10 }) % 10 === 0 //génération d'une majorité de cotissant
-              ? {
-                create: {
-                  paid: true,
-                  option: {
-                    connect: {
-                      id: contributionOptions.find((option) =>
-                        major.schools.some((school) => school.id === option.offeredInId),
-                      )!.id,
-                    },
+    where: { id: faker.helpers.arrayElement(majors).id },
+    include: { schools: true },
+  });
+  const minor = await prisma.minor.findUniqueOrThrow({
+    where: { id: faker.helpers.arrayElement(minors).id },
+  });
+  await prisma.user.create({
+    data: {
+      ...data,
+      uid: await createUid(data),
+      email: faker.internet.email({ firstName: data.firstName, lastName: data.firstName }),
+      description: faker.lorem.paragraph({ min: 0, max: 50 }),
+      links: {
+        create: [
+          { name: 'Facebook', value: '#' },
+          { name: 'Instagram', value: '#' },
+          { name: 'Telegram', value: '#' },
+          { name: 'Twitter', value: '#' },
+        ],
+      },
+      contributions:
+        faker.number.int({ min: 0, max: 10 }) % 10 === 0 //génération d'une majorité de cotissant
+          ? {
+              create: {
+                paid: true,
+                option: {
+                  connect: {
+                    id: contributionOptions.find((option) =>
+                      major.schools.some((school) => school.id === option.offeredInId),
+                    )!.id,
                   },
                 },
-              }
-              : undefined,
-          phone: faker.phone.number(),
-          address: faker.location.streetAddress(),
-          birthday: faker.date.birthdate({ min : 17, max : 25, mode: "age"}),
-          graduationYear : faker.helpers.weightedArrayElement([
-            { weight: 10, value: 2026 },
-            { weight: 10, value: 2025 },
-            { weight: 10, value: 2024 },
-            { weight: 3, value: 2023 },
-            { weight: 1, value:2022 }
-          ]),
-          major: { connect: { id : major.id }},
-          credentials: { create: { type: CredentialType.Password, value: await hash('a') } },
-          canAccessDocuments: true,
-      },
-    });
-
+              },
+            }
+          : undefined,
+      phone: faker.phone.number(),
+      address: faker.location.streetAddress(),
+      birthday: faker.date.birthdate({ min: 17, max: 25, mode: 'age' }),
+      graduationYear: faker.helpers.weightedArrayElement([
+        { weight: 10, value: 2026 },
+        { weight: 10, value: 2025 },
+        { weight: 10, value: 2024 },
+        { weight: 3, value: 2023 },
+        { weight: 1, value: 2022 },
+      ]),
+      major: { connect: { id: major.id } },
+      minor: { connect: { id: minor.id } },
+      credentials: { create: { type: CredentialType.Password, value: await hash('a') } },
+      canAccessDocuments: true,
+    },
+  });
 }
 
 const users = await prisma.user.findMany();
 
-let numberSubject : number = 10; 
+const numberSubject: number = 10;
 //creation de nbSubject pour toute les mineurs des filières possible
-for (const[_, minor] of minors.entries()){
-  for(let j=0; j< numberSubject; j++){
-      await prisma.document.create({
-        data:{
-          description: faker.lorem.paragraph({ min : 2, max : 10}),
-          title: 'Un document',
-          uid: 'un-document',
-          schoolYear: faker.number.int({ min : 2015, max : 2024}),
-          subject: { connect: { id: minor?.id } }, 
-          type: 'Exam',
-          uploader: { connect: { uid: faker.helpers.arrayElement(users.filter((element) => element.minorId === minor.id)).uid } }, //recup uniquement les users de la bonne mineur pour en faire des auteurs
-        }
-      })
-    }
+
+for (const [_, minor] of minors.entries()) {
+  for (let j = 0; j < numberSubject; j++) {
+    const title: string = faker.lorem.word();
+    const subject = await prisma.subject.create({
+      data: {
+        name: title,
+        uid: slug(title),
+      },
+    });
+    await prisma.document.create({
+      data: {
+        description: faker.lorem.paragraph({ min: 2, max: 10 }),
+        title: 'Un document',
+        uid: 'un-document',
+        schoolYear: faker.number.int({ min: 2015, max: 2024 }),
+        subject: { connect: { id: subject.id } },
+        type: 'Exam',
+        uploader: {
+          connect: {
+            uid: faker.helpers.arrayElement(users.filter((element) => element.minorId === minor.id))
+              .uid,
+          },
+        }, //recup uniquement les users de la bonne mineur pour en faire des auteurs
+      },
+    });
+  }
 }
 
 const clubsData = [
@@ -535,7 +501,7 @@ Intégration2022 = await prisma.group.update({
     familyRoot: { connect: { id: Intégration2022.id } },
   },
 });
-
+/*
 const Groupe1 = await prisma.group.create({
   data: {
     name: 'Groupe 1',
@@ -548,7 +514,7 @@ const Groupe1 = await prisma.group.create({
     // members: { createMany: { data: [{ memberId: 2 }, { memberId: 3 }, { memberId: 4 }] } },
   },
 });
-
+*/
 await prisma.group.create({
   data: {
     name: 'Groupe 2',
@@ -567,7 +533,7 @@ let groups = await prisma.group.findMany({ include: { members: { include: { memb
 const groupMembers: Prisma.GroupMemberCreateManyInput[] = [];
 
 for (const group of groups) {
-  const randomUserIDs = faker.helpers.arrayElements(users, { min : 10, max: 30});
+  const randomUserIDs = faker.helpers.arrayElements(users, { min: 10, max: 30 });
   groupMembers.push(
     {
       groupId: group.id,
@@ -606,18 +572,13 @@ for (const group of groups) {
       title: 'Respo Com',
       canEditArticles: true,
     }, //on peut continuer a souhait pour créer d'autres membres avec des roles spéciaux si besoin...
-    {
-      groupId: group.id,
-      memberId: randomUserIDs[4]!.id,
-    }
   );
-  for(let i=5; i < randomUserIDs.length; i++){
-    groupMembers.push(
-      {
-        groupId: group.id,
-        memberId: randomUserIDs[i]!.id
-      }
-    )
+  for (let i = 5; i < randomUserIDs.length; i++) {
+    //on ajoute les membres restants
+    groupMembers.push({
+      groupId: group.id,
+      memberId: randomUserIDs[i]!.id,
+    });
   }
 }
 
@@ -627,11 +588,10 @@ groups = await prisma.group.findMany({ include: { members: { include: { member: 
 
 const articleData: Prisma.ArticleCreateInput[] = [];
 
-
 const end = 26 * 5;
-const currentDate = Date.now()
-const startDate = new Date(faker.date.anytime({ refDate: currentDate})).getTime(); //génération d'une date autour de la date actuelle=date où tu build
-const endDate = new Date(faker.date.future({ refDate : startDate })).getTime();
+const currentDate = Date.now();
+const startDate = new Date(faker.date.anytime({ refDate: currentDate })).getTime(); //génération d'une date autour de la date actuelle=date où tu build
+const endDate = new Date(faker.date.future({ refDate: startDate })).getTime();
 
 for (let i = 0; i < end; i++) {
   const group = faker.helpers.arrayElement(groups);
@@ -703,17 +663,33 @@ await prisma.article.create({
   },
 });
 
-for(let i =0; i < 5; i++){
-  let selectedClub = faker.helpers.arrayElement(groups);
-  let capacityEvent = faker.number.int({min: 30, max: 300});
+await prisma.article.create({
+  data: {
+    title: 'Le nouveau seeding semble ok',
+    body: `début de l'inté, vous allez devenir alcoolique et vomir partout`,
+    uid: 'le-nouveau-seeding-semble-ok',
+    group: {
+      connect: { id: Intégration2022.id },
+    },
+    published: true,
+    links: {
+      create: [],
+    },
+  },
+});
+
+for (let i = 0; i < 5; i++) {
+  const selectedClub = faker.helpers.arrayElement(groups);
+  const eventName = faker.lorem.words(3);
+  const capacityEvent = faker.number.int({ min: 30, max: 300 });
   await prisma.event.create({
-    data:{
+    data: {
       contactMail: 'hey@ewen.works',
       description: 'Ceci est un événement',
       endsAt: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
       startsAt: new Date(),
-      uid: 'ceci-est-un-evenement',
-      title: 'Ceci est un événement',
+      uid: slug(eventName),
+      title: eventName,
       group: { connect: { id: selectedClub.id } },
       visibility: Visibility.Public,
       articles: {
@@ -749,7 +725,7 @@ for(let i =0; i < 5; i++){
               uid: `event-${selectedClub.uid}`,
               name: `Event ${selectedClub.name}`,
               description: 'blablabla ramenez vos culs par pitié je vous en supplie',
-              price: faker.number.int({min : 0, max: 30}),
+              price: faker.number.int({ min: 0, max: 30 }),
               capacity: capacityEvent,
               opensAt: new Date(),
               closesAt: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
@@ -768,11 +744,11 @@ for(let i =0; i < 5; i++){
     include: {
       tickets: true,
     },
-  })
+  });
 }
 
-let events = await prisma.event.findMany({ include: { tickets: true } });
-let selectedEvent  = faker.helpers.arrayElement(events);
+const events = await prisma.event.findMany({ include: { tickets: true } });
+let selectedEvent = faker.helpers.arrayElement(events);
 
 const registration = await prisma.registration.create({
   data: {
@@ -785,14 +761,16 @@ const registration = await prisma.registration.create({
 });
 
 for (const i of range(0, 100)) {
-  selectedEvent  = faker.helpers.arrayElement(events);
+  selectedEvent = faker.helpers.arrayElement(events);
   await prisma.registration.create({
     data: {
       createdAt: randomTime(registration.createdAt, range(13, 23)),
       ticketId: faker.helpers.arrayElement(selectedEvent.tickets).id,
       authorId:
-        // eslint-disable-next-line unicorn/no-null
-        i % 4 === 0 ? null : faker.helpers.arrayElement(users.filter((u) => u.id !== registration.authorId)).id, //c'est quoi l'objectif ? uwu :3
+        i % 4 === 0
+          ? // eslint-disable-next-line unicorn/no-null
+            null
+          : faker.helpers.arrayElement(users.filter((u) => u.id !== registration.authorId)).id, //c'est quoi l'objectif ? uwu :3
       authorEmail: i % 4 === 0 ? 'feur@quoi.com' : undefined,
       paymentMethod: i % 2 === 0 ? 'Lydia' : 'Cash',
       paid: true,
@@ -800,7 +778,6 @@ for (const i of range(0, 100)) {
     },
   });
 }
-
 
 await prisma.ticket.update({
   where: { id: events[0]!.tickets[0]!.id },
@@ -821,10 +798,23 @@ await prisma.ticket.update({
   },
 });
 
-for(const[_, data] of groups.entries()){
+/*
+const usersDebug = await prisma.user.findMany();
+const eventDebug = await prisma.event.findMany();
+const groupDebug = await prisma.group.findMany();
+
+//console.log("USER DEBUG -------------------------------");
+//console.log(usersDebug);
+//console.log("EVENT DEBUG -------------------------------");
+//console.log(eventDebug);
+console.log("GROUP DEBUG -------------------------------");
+console.log(groupDebug);
+
+
+for (const [_, data] of groups.entries()) {
   await prisma.event.create({
     data: {
-      contactMail: `${data.name}@chipichipichapachpamail.com`,
+      contactMail: `${data.name}@chipichipichapachpa@mail.com`,
       description: 'Viens passer la passation TVn7 avec nous !',
       endsAt: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
       startsAt: new Date(),
@@ -868,4 +858,6 @@ for(const[_, data] of groups.entries()){
       },
     },
   });
-} //en vrai ça on peut l'exploser ??
+} //en vrai ça on peut l'exploser ??*/
+
+exit(0);

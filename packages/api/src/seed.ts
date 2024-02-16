@@ -598,7 +598,7 @@ for (const data of articleData) await prisma.article.create({ data });
 await prisma.article.create({
   data: {
     title: "C'est le début de l'inté",
-    body: '_youpi_',
+    body: 'CRINGE FRERO CEST PAS LE BON SEEDING',
     uid: 'cest-le-debut-de-l-inte',
     group: {
       connect: { id: Intégration2022.id },
