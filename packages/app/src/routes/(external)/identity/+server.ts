@@ -17,7 +17,7 @@ export const GET = async ({ fetch, request }) => {
           },
         },
         groups: {
-          group: { uid: true },
+          group: { uid: true, name: true },
         },
       },
     },
@@ -33,8 +33,10 @@ export const GET = async ({ fetch, request }) => {
 
   const data = {
     ...me,
+    fullName: me.fullName.slice(0, 255),
     ldapInternalEmail: `${me.uid}@${me.major?.ldapSchool?.internalMailDomain ?? 'external'}`,
     groupsUids: me.groups.map((g) => g.group.uid),
+    groupsNames: me.groups.map((g) => g.group.name),
   };
 
   console.info(`[oauth] identity(${me.uid}) = ${JSON.stringify(data)}`);

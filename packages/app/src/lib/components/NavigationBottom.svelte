@@ -106,7 +106,7 @@
     href="/services/"
     class:current={!flyoutOpen && current === 'services'}
     class:disabled={flyoutOpen}
-    use:tooltip={'Les autre services'}
+    use:tooltip={'Les autres services'}
   >
     {#if current === 'services'}
       <IconDotsCircle />
@@ -200,6 +200,15 @@
     background-color: var(--bg);
     background-image: url('/noel-bottombar.png');
     background-size: cover;
+    border-top: none;
+  }
+
+  nav.gd7t {
+    background-color: transparent;
+    background-image: url('/gd7t-bottom.png');
+    background-position: center;
+    background-size: 100% 100%;
+    backdrop-filter: blur(10px);
     border-top: none;
   }
 

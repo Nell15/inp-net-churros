@@ -328,6 +328,7 @@
     flex-shrink: 0;
     width: var(--size);
     height: var(--size);
+    overflow: hidden;
   }
 
   .picture img {
@@ -407,6 +408,7 @@
     column-gap: 0.5rem;
     align-items: center;
     margin-left: 0;
+    word-break: break-word;
   }
 
   dd.is-list {
@@ -447,11 +449,17 @@
   }
 
   .family {
-    display: flex;
+    display: grid;
     flex-flow: column wrap;
+    place-content: start center;
     align-items: center;
-    justify-content: center;
     overflow: auto;
+  }
+
+  @media (max-width: 415px) {
+    .family {
+      padding-left: 5rem;
+    }
   }
 
   .articles {
