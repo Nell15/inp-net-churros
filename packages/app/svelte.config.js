@@ -1,6 +1,10 @@
-import adapter from '@sveltejs/adapter-node';
+import nodeAdapter from '@sveltejs/adapter-node';
+import staticAdapter from '@sveltejs/adapter-static';
+
 import { fileURLToPath } from 'node:url';
 import preprocess from 'svelte-preprocess';
+
+const adapter = process.env.BUILDING_FOR === 'mobile' ? staticAdapter : nodeAdapter;
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -15,7 +19,9 @@ const config = {
   ],
 
   kit: {
-    adapter: adapter(),
+    adapter: adapter({
+      fallback: 'index.html',
+    }),
   },
 };
 
